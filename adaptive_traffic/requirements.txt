@@ -1,0 +1,8 @@
+# Minimal, compiler-free dependency set to run baseline RL + env on Windows (uses prebuilt wheels)
+numpy==1.26.4
+matplotlib==3.8.4
+opencv-python==4.10.0.84
+pydantic==2.7.1
+tqdm==4.66.4
+# Vision model
+ultralytics==8.3.33
