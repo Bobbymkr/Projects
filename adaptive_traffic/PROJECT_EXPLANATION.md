@@ -292,3 +292,4 @@ The system demonstrates the power of **AI-driven infrastructure management** and
 ---
 
 *This project showcases the intersection of artificial intelligence, computer vision, and transportation engineering, creating a smarter, more efficient future for urban mobility.*
+

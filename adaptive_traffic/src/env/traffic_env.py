@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Tuple, Dict, Any
+from src.rl.dqn_agent import DQNAgent, DQNConfig
 
 
 class Discrete:
@@ -122,3 +123,49 @@ class TrafficEnv:
 
     def render(self):
         print(f"t={self.time}s phase={self.phase_index} queues={self.queues.tolist()}")
+
+    def simulate_episode(self, num_steps: int = 10, seed: int = 42, use_agent: bool = False):
+        """Run a simulation for a given number of steps and print outputs.
+
+        Args:
+            num_steps: Number of steps to simulate.
+            seed: Random seed for reproducibility.
+            use_agent: If True, use DQN agent for action selection; else random.
+        """
+        obs, _ = self.reset(seed=seed)
+        agent = None
+        if use_agent:
+            agent = DQNAgent(
+                state_dim=self.observation_space.shape[0],
+                action_dim=self.action_space.n,
+                cfg=DQNConfig()
+            )
+            # For demo, we'll use a fresh agent; in practice, load a trained model
+        print(f"Initial: time={self.time}, phase={self.phase_index}, queues={obs.tolist()}")
+        for step in range(num_steps):
+            if agent:
+                action = agent.select_action(obs.astype(np.float32))
+            else:
+                action = np.random.randint(0, self.action_space.n)  # Random action for demo
+            obs, reward, _, _, info = self.step(action)
+            green_duration = self.green_values[action]
+            print(f"Step {step+1}: action={action} (green={green_duration}s), time={info['time']}, phase={info['phase']}, queues={obs.tolist()}, reward={reward}")
+
+if __name__ == "__main__":
+    config = {  # Sample config
+        "num_lanes": 4,
+        "phase_lanes": [[0, 1], [2, 3]],
+        "min_green": 5,
+        "max_green": 60,
+        "green_step": 5,
+        "cycle_yellow": 3,
+        "cycle_all_red": 1,
+        "arrival_rates": [0.3, 0.3, 0.3, 0.3],
+        "queue_capacity": 40,
+        "reward_weights": {"queue": -1.0, "wait_penalty": -0.1}
+    }
+    env = TrafficEnv(config)
+    print("Simulation with random actions:")
+    env.simulate_episode(num_steps=5, use_agent=False)
+    print("\nSimulation with DQN agent:")
+    env.simulate_episode(num_steps=5, use_agent=True)
