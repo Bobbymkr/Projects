@@ -5,24 +5,6 @@
 
 ## 🎯 Project Overview
 
-... (existing content)
-
-## 🔄 SUMO Integration
-
-### Overview
-This project now integrates SUMO (Simulation of Urban MObility) for more realistic traffic simulation.
-
-### Components
-- **SumoEnv** (`src/env/sumo_env.py`): SUMO-based environment using TraCI.
-  - Observation: Queue lengths from SUMO edges.
-  - Actions: Discrete green durations.
-  - Reward: Based on queues and wait times.
-- **Configuration Files**: In `configs/` - sumo.nod.xml, sumo.edg.xml, sumo.net.xml, sumo.rou.xml, sumo.sumocfg.
-
-### Usage
-- Use `--use_sumo` flag in training and inference scripts to enable SUMO mode.
-- Ensure SUMO is installed and binaries are in PATH.
-
 This project implements an **intelligent adaptive traffic signal control system** using **Deep Reinforcement Learning (DRL)**. The system automatically optimizes traffic signal timing at intersections by learning from real-time traffic conditions, significantly reducing congestion, wait times, and improving overall traffic flow efficiency.
 
 ### Key Innovation
@@ -137,21 +119,37 @@ Reward = -(Queue Weight × Total Queue Length) - (Wait Weight × Total Wait Time
 
 ---
 
-##  Usage & Deployment
+##  SUMO Integration
 
-### **1. Training the Model**
-```bash
-# Activate virtual environment
-.venv\Scripts\Activate.ps1
+### Overview
+This project now integrates SUMO (Simulation of Urban MObility) for more realistic traffic simulation.
 
-# Train DQN agent (100 episodes for good performance)
-python -m src.rl.train_dqn --episodes 100
-```
+### Components
+- **SumoEnv** (`src/env/sumo_env.py`): SUMO-based environment using TraCI.
+  - Observation: Queue lengths from SUMO edges.
+  - Actions: Discrete green durations.
+  - Reward: Based on queues and wait times.
+- **MarlEnv** (`src/env/marl_env.py`): Multi-Agent RL environment for multiple intersections.
+  - Supports agent communication and coordinated actions.
+  - Integrates traffic forecasting for predictive states.
+- **Configuration Files**: In `configs/` - sumo.nod.xml, sumo.edg.xml, sumo.net.xml, sumo.rou.xml, sumo.sumocfg, grid.sumocfg for multi-intersection grid.
+
+### Usage
+- Use `--use_sumo` flag in training and inference scripts to enable SUMO mode.
+- Use `--marl` flag to enable Multi-Agent RL mode.
+- Ensure SUMO is installed and binaries are in PATH.
+
+### **D. Traffic Forecasting Module (`src/forecast/traffic_forecast.py`)**
+- **Purpose**: Predicts future traffic states using LSTM model.
+- **Features**:
+  - TensorFlow-based LSTM network.
+  - Predicts traffic volumes for multiple steps ahead.
+  - Integrated into MARL environment for enhanced state representation.
 
 ### **2. Simulation-Based Inference**
 ```bash
 # Test trained model on simulated traffic
-python -m src.rl.inference sim --model runs\dqn_traffic.npz
+python -m src.rl.inference sim --model runs/dqn_traffic.npz --marl
 ```
 
 ### **3. Real-Time Video Inference**

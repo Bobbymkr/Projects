@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 # Simulation (fallback) environment
 from src.env.traffic_env import TrafficEnv
 from src.env.sumo_env import SumoEnv
+from src.env.marl_env import MarlEnv
 
 # Video-based environment and vision stack
 from src.env.video_env import VideoTrafficEnv
@@ -24,7 +25,12 @@ def load_config(path: str) -> Dict[str, Any]:
     with open(path, 'r') as f:
         return json.load(f)
 
-def make_env(cfg: Dict[str, Any], use_sumo: bool = False):
+def make_env(cfg: Dict[str, Any], use_sumo: bool = False, use_marl: bool = False):
+    if use_marl:
+        return MarlEnv()
+    if use_sumo:
+        return SumoEnv(cfg)
+    return TrafficEnv(cfg)
     if use_sumo:
         return SumoEnv(cfg)
     return TrafficEnv(cfg)
@@ -98,12 +104,37 @@ def create_video_environment(traffic_config: Dict[str, Any],
 # Inference entry points
 # ------------------------------
 
-def run_inference(cfg_path: str, model_path: str, use_sumo: bool = False):
+def run_inference(cfg_path: str, model_dir: str, use_sumo: bool = False, use_marl: bool = False):
     """Run inference on the simulated TrafficEnv (or SumoEnv if flagged) and print the recommended green time.
     This is the original inference path for the synthetic environment.
     """
     cfg = load_config(cfg_path)
-    env = make_env(cfg, use_sumo)
+    env = make_env(cfg, use_sumo, use_marl)
+    if use_marl:
+        for tl in env.intersections:
+            forecaster_path = os.path.join(model_dir, f'forecaster_{tl}.h5')
+            if os.path.exists(forecaster_path):
+                env.forecaster[tl].load(forecaster_path)
+        num_agents = env.num_agents
+        agents = []
+        for i in range(num_agents):
+            agent = DQNAgent(state_dim=env.observation_space[i].shape[0], action_dim=env.action_space[i].n, cfg=DQNConfig())
+            agent_path = os.path.join(model_dir, f'dqn_traffic_agent_{i}.npz')
+            agent.load(agent_path)
+            agents.append(agent)
+        states = env.reset()
+        total_rewards = [0.0] * num_agents
+        done = False
+        while not done:
+            actions = [ag.select_action(st.astype(np.float32), evaluate=True) for ag, st in zip(agents, states)]
+            next_states, rews, dones, _ = env.step(actions)
+            for i in range(num_agents):
+                total_rewards[i] += rews[i]
+            states = next_states
+            done = any(dones)
+        avg_reward = np.mean(total_rewards)
+        print(f"Average reward over the episode: {avg_reward:.2f}")
+        return
     agent = DQNAgent(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, cfg=DQNConfig())
     agent.load(model_path)
 
@@ -174,7 +205,8 @@ if __name__ == "__main__":
     # Simulated inference (default)
     sim_parser = subparsers.add_parser('sim', help='Run inference on simulated TrafficEnv (default)')
     sim_parser.add_argument('--config', default='configs/intersection.json', help='Traffic config JSON')
-    sim_parser.add_argument('--model', required=True, help='Path to trained DQN .npz model')
+    sim_parser.add_argument('--model', required=True, help='Path to trained DQN .npz model or directory for MARL')
+    sim_parser.add_argument('--marl', action='store_true', help='Use MARL environment')
     sim_parser.add_argument('--use_sumo', action='store_true', help='Use SUMO-based environment')
 
     # Video-based inference
@@ -205,4 +237,4 @@ if __name__ == "__main__":
             warmup_sec=args.warmup,
         )
     else:
-        run_inference(args.config, args.model, args.use_sumo)
+        run_inference(args.config, args.model, args.use_sumo, args.marl)
