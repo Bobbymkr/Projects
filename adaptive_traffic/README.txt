@@ -14,3 +14,8 @@ Steps:
 3) Install deps: pip install -r requirements.txt
 4) Train: python src\\rl\\train_dqn.py --episodes 5
 5) Inference demo: python src\\rl\\inference.py
+
+SUMO Integration:
+- Install SUMO: pip install eclipse-sumo
+- Ensure SUMO_HOME is set and binaries in PATH.
+- Use --use_sumo flag for SUMO mode, e.g., python src\\rl\\train_dqn.py --use_sumo

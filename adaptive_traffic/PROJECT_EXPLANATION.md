@@ -5,6 +5,24 @@
 
 ## 🎯 Project Overview
 
+... (existing content)
+
+## 🔄 SUMO Integration
+
+### Overview
+This project now integrates SUMO (Simulation of Urban MObility) for more realistic traffic simulation.
+
+### Components
+- **SumoEnv** (`src/env/sumo_env.py`): SUMO-based environment using TraCI.
+  - Observation: Queue lengths from SUMO edges.
+  - Actions: Discrete green durations.
+  - Reward: Based on queues and wait times.
+- **Configuration Files**: In `configs/` - sumo.nod.xml, sumo.edg.xml, sumo.net.xml, sumo.rou.xml, sumo.sumocfg.
+
+### Usage
+- Use `--use_sumo` flag in training and inference scripts to enable SUMO mode.
+- Ensure SUMO is installed and binaries are in PATH.
+
 This project implements an **intelligent adaptive traffic signal control system** using **Deep Reinforcement Learning (DRL)**. The system automatically optimizes traffic signal timing at intersections by learning from real-time traffic conditions, significantly reducing congestion, wait times, and improving overall traffic flow efficiency.
 
 ### Key Innovation
@@ -96,7 +114,7 @@ Reward = -(Queue Weight × Total Queue Length) - (Wait Weight × Total Wait Time
 
 ---
 
-## 📊 Configuration & Parameters
+##  Configuration & Parameters
 
 ### **Intersection Configuration** (`configs/intersection.json`):
 ```json
@@ -119,7 +137,7 @@ Reward = -(Queue Weight × Total Queue Length) - (Wait Weight × Total Wait Time
 
 ---
 
-## 🚀 Usage & Deployment
+##  Usage & Deployment
 
 ### **1. Training the Model**
 ```bash
@@ -150,7 +168,7 @@ python -m src.rl.visualize_sim
 
 ---
 
-## 📈 Performance & Results
+##  Performance & Results
 
 ### **Training Metrics**:
 - **Average Reward**: -513,479.68 (over 5 episodes)
@@ -166,7 +184,7 @@ python -m src.rl.visualize_sim
 
 ---
 
-## 🔧 Technical Requirements
+##  Technical Requirements
 
 ### **Software Dependencies**:
 - **Python 3.11+**
@@ -185,7 +203,7 @@ python -m src.rl.visualize_sim
 
 ---
 
-## 🌟 Key Advantages
+##  Key Advantages
 
 ### **1. Adaptability**
 - **Dynamic Response**: Adjusts to real-time traffic conditions
@@ -209,7 +227,7 @@ python -m src.rl.visualize_sim
 
 ---
 
-## 🔮 Future Enhancements
+##  Future Enhancements
 
 ### **1. Advanced Features**
 - **Multi-Intersection Coordination**: Traffic flow optimization across city networks
@@ -231,7 +249,7 @@ python -m src.rl.visualize_sim
 
 ---
 
-## 📚 Technical Deep Dive
+##  Technical Deep Dive
 
 ### **Neural Network Architecture**:
 ```
@@ -255,7 +273,7 @@ Queue Lengths        ReLU Activation          ReLU Activation      Q-Values for 
 
 ---
 
-## 🎯 Business Impact
+##  Business Impact
 
 ### **For Transportation Authorities**:
 - **Improved Traffic Flow**: Better intersection efficiency
@@ -277,7 +295,7 @@ Queue Lengths        ReLU Activation          ReLU Activation      Q-Values for 
 
 ---
 
-## 🔍 Conclusion
+##  Conclusion
 
 This **Adaptive Traffic Signal Control System** represents a significant advancement in intelligent transportation technology. By combining **deep reinforcement learning** with **real-time computer vision**, it creates a self-optimizing traffic management solution that:
 

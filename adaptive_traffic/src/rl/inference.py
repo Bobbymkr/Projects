@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional
 
 # Simulation (fallback) environment
 from src.env.traffic_env import TrafficEnv
+from src.env.sumo_env import SumoEnv
 
 # Video-based environment and vision stack
 from src.env.video_env import VideoTrafficEnv
@@ -22,6 +23,11 @@ def load_config(path: str) -> Dict[str, Any]:
     """Load configuration dictionary from a JSON file."""
     with open(path, 'r') as f:
         return json.load(f)
+
+def make_env(cfg: Dict[str, Any], use_sumo: bool = False):
+    if use_sumo:
+        return SumoEnv(cfg)
+    return TrafficEnv(cfg)
 
 
 def create_video_config(video_source: str, fps: float = 15.0, width: int = 640, height: int = 480) -> VideoConfig:
@@ -92,12 +98,12 @@ def create_video_environment(traffic_config: Dict[str, Any],
 # Inference entry points
 # ------------------------------
 
-def run_inference(cfg_path: str, model_path: str):
-    """Run inference on the simulated TrafficEnv and print the recommended green time.
+def run_inference(cfg_path: str, model_path: str, use_sumo: bool = False):
+    """Run inference on the simulated TrafficEnv (or SumoEnv if flagged) and print the recommended green time.
     This is the original inference path for the synthetic environment.
     """
     cfg = load_config(cfg_path)
-    env = TrafficEnv(cfg)
+    env = make_env(cfg, use_sumo)
     agent = DQNAgent(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, cfg=DQNConfig())
     agent.load(model_path)
 
@@ -169,6 +175,7 @@ if __name__ == "__main__":
     sim_parser = subparsers.add_parser('sim', help='Run inference on simulated TrafficEnv (default)')
     sim_parser.add_argument('--config', default='configs/intersection.json', help='Traffic config JSON')
     sim_parser.add_argument('--model', required=True, help='Path to trained DQN .npz model')
+    sim_parser.add_argument('--use_sumo', action='store_true', help='Use SUMO-based environment')
 
     # Video-based inference
     vid_parser = subparsers.add_parser('video', help='Run inference using real-time video')
@@ -198,4 +205,4 @@ if __name__ == "__main__":
             warmup_sec=args.warmup,
         )
     else:
-        run_inference(args.config, args.model)
+        run_inference(args.config, args.model, args.use_sumo)

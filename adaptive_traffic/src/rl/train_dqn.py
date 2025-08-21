@@ -5,6 +5,7 @@ import numpy as np
 from tqdm import trange
 
 from src.env.traffic_env import TrafficEnv
+from src.env.sumo_env import SumoEnv
 from src.rl.dqn_agent import DQNAgent, DQNConfig
 
 
@@ -13,14 +14,16 @@ def load_config(path: str):
         return json.load(f)
 
 
-def make_env(cfg_path: str) -> TrafficEnv:
+def make_env(cfg_path: str, use_sumo: bool) -> TrafficEnv:
     cfg = load_config(cfg_path)
+    if use_sumo:
+        return SumoEnv(cfg)
     return TrafficEnv(cfg)
 
 
-def train(cfg_path: str, episodes: int, out_dir: str):
+def train(cfg_path: str, episodes: int, out_dir: str, use_sumo: bool):
     os.makedirs(out_dir, exist_ok=True)
-    env = make_env(cfg_path)
+    env = make_env(cfg_path, use_sumo)
     agent = DQNAgent(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, cfg=DQNConfig())
 
     rewards = []
@@ -53,5 +56,6 @@ if __name__ == "__main__":
     parser.add_argument('--config', default='configs/intersection.json')
     parser.add_argument('--episodes', type=int, default=5)
     parser.add_argument('--out', default='runs')
+    parser.add_argument('--use_sumo', action='store_true', help='Use SUMO-based environment instead of custom simulator')
     args = parser.parse_args()
-    train(args.config, args.episodes, args.out)
+    train(args.config, args.episodes, args.out, args.use_sumo)
