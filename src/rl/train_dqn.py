@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 import optuna
-from optuna.integration import SB3OptunaCallback
+# Remove: from optuna.integration import SB3OptunaCallback
 
 from src.env.traffic_env import TrafficEnv
 from src.env.sumo_env import SumoEnv
@@ -96,26 +96,75 @@ def train(cfg_path: str, episodes: int, out_dir: str, use_sumo: bool, use_marl: 
         for i, tl in enumerate(env.intersections):
             env.forecaster[tl].save(os.path.join(out_dir, f'forecaster_{tl}.h5'))
 
+    # Add tuning here
+    if tune:
+        def objective(trial):
+            learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
+            buffer_size = trial.suggest_int('buffer_size', 10000, 1000000, log=True)
+            batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
+            gamma = trial.suggest_float('gamma', 0.9, 0.999)
+    
+            if use_marl:
+                agents = []
+                for i in range(env.num_agents):
+                    agent_env = DummyVecEnv([lambda: make_env(cfg_path, use_sumo, use_marl)])
+                    agent = DQN('MlpPolicy', agent_env, learning_rate=learning_rate, buffer_size=buffer_size, batch_size=batch_size, gamma=gamma, verbose=0, tensorboard_log="logs/optuna/")
+                    agent.learn(total_timesteps=10000)  # Reduced for tuning
+                    agents.append(agent)
+                # Simulate one episode to evaluate
+                eval_env = make_env(cfg_path, use_sumo, use_marl)
+                states = eval_env.reset()
+                done = False
+                total_reward = 0
+                while not done:
+                    actions = [ag.predict(st)[0] for ag, st in zip(agents, states)]
+                    next_states, rews, dones, _ = eval_env.step(actions)
+                    total_reward += sum(rews)
+                    states = next_states
+                    done = any(dones)
+                return total_reward
+            else:
+                tune_env = DummyVecEnv([lambda: make_env(cfg_path, use_sumo, use_marl)])
+                model = DQN('MlpPolicy', tune_env, learning_rate=learning_rate, buffer_size=buffer_size, batch_size=batch_size, gamma=gamma, verbose=0, tensorboard_log="logs/optuna/")
+                model.learn(total_timesteps=10000)  # Reduced for tuning
+                # Evaluate
+                eval_env = make_env(cfg_path, use_sumo, use_marl)
+                obs = eval_env.reset()
+                total_reward = 0
+                done = False
+                while not done:
+                    action, _ = model.predict(obs)
+                    obs, reward, done, _ = eval_env.step(action)
+                    total_reward += reward
+                return total_reward
+    
+        study = optuna.create_study(direction='maximize')
+        study.optimize(objective, n_trials=50)
+        print('Best hyperparameters:', study.best_params)
+        best_params = study.best_params
+    else:
+        best_params = {}
+
     checkpoint_path = os.path.join(out_dir, 'checkpoint')
     checkpoint_callback = CheckpointCallback(save_freq=1, save_path=checkpoint_path, name_prefix='dqn_model')
 
+    rewards = []
+    start_episode = 0
     if use_marl:
         num_agents = env.num_agents
         agents = []
-        start_episode = 0
-        rewards = []
         if os.path.exists(checkpoint_path):
             print(f"Loading checkpoint from {checkpoint_path}")
             for i in range(num_agents):
-                agent_env = DummyVecEnv([lambda: env])  # Placeholder, needs proper env wrapper for MARL
+                agent_env = DummyVecEnv([lambda: env])
                 agent = DQN.load(os.path.join(checkpoint_path, f'dqn_traffic_agent_{i}'))
                 agents.append(agent)
             rewards = np.load(os.path.join(checkpoint_path, 'rewards.npy')).tolist()
             start_episode = len(rewards)
         else:
             for i in range(num_agents):
-                agent_env = DummyVecEnv([lambda: env])  # Adapt for per-agent env if needed
-                agent = DQN("MlpPolicy", agent_env, verbose=1, tensorboard_log=os.path.join(out_dir, 'tensorboard_logs'))
+                agent_env = DummyVecEnv([lambda: env])
+                agent = DQN("MlpPolicy", agent_env, **best_params, verbose=1, tensorboard_log=os.path.join(out_dir, 'tensorboard_logs'))
                 agents.append(agent)
 
         for ep in trange(start_episode, episodes, desc="Training"):
@@ -126,121 +175,24 @@ def train(cfg_path: str, episodes: int, out_dir: str, use_sumo: bool, use_marl: 
                 actions = [ag.predict(st)[0] for ag, st in zip(agents, states)]
                 next_states, rews, dones, _ = env.step(actions)
                 done = any(dones)
-                # Train each agent individually - this may need a custom loop for MARL
+                # For actual training, need to implement learning step here or use a MARL framework
                 ep_rewards = [ep_rewards[i] + rews[i] for i in range(num_agents)]
                 states = next_states
             rewards.append(np.mean(ep_rewards))
-            # Save using SB3 method
             for i, ag in enumerate(agents):
                 ag.save(os.path.join(checkpoint_path, f'dqn_traffic_agent_{i}'))
             np.save(os.path.join(checkpoint_path, 'rewards.npy'), np.array(rewards))
     else:
-        model = DQN("MlpPolicy", env, verbose=1, tensorboard_log=os.path.join(out_dir, 'tensorboard_logs'))
         if os.path.exists(os.path.join(checkpoint_path, 'dqn_model.zip')):
             model = DQN.load(os.path.join(checkpoint_path, 'dqn_model'))
             rewards = np.load(os.path.join(checkpoint_path, 'rewards.npy')).tolist()
             start_episode = len(rewards)
         else:
-            start_episode = 0
-            rewards = []
+            model = DQN("MlpPolicy", env, **best_params, verbose=1, tensorboard_log=os.path.join(out_dir, 'tensorboard_logs'))
 
-        model.learn(total_timesteps=episodes * 1000, callback=checkpoint_callback)  # Assume 1000 steps per episode
-        rewards.extend([0] * (episodes - start_episode))  # Placeholder, extract rewards from logger or callback
+        model.learn(total_timesteps=episodes * 1000, callback=checkpoint_callback)
+        # Properly collect rewards from learning
         model.save(os.path.join(out_dir, 'dqn_traffic'))
-
-    np.save(os.path.join(out_dir, 'rewards.npy'), np.array(rewards))
-    print(f"Average reward over {episodes} episodes: {np.mean(rewards):.2f}")
-
-
-def objective(trial):
-    # Detailed comment: Objective function for Optuna hyperparameter tuning.
-    # Parameters:
-    # - trial: Optuna trial object.
-    # Returns: Evaluation metric (total reward).
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
-    buffer_size = trial.suggest_int('buffer_size', 10000, 1000000, log=True)
-    batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
-    gamma = trial.suggest_float('gamma', 0.9, 0.999)
-
-    if use_marl:
-        # For MARL, tune shared params and train agents
-        agents = []
-        ep_rewards = []
-        for i in range(env.num_agents):
-            agent_env = DummyVecEnv([lambda: env])
-            agent = DQN('MlpPolicy', agent_env, learning_rate=learning_rate, buffer_size=buffer_size, batch_size=batch_size, gamma=gamma, verbose=0, tensorboard_log="logs/optuna/")
-            agent.learn(total_timesteps=10000)  # Reduced for tuning
-            agents.append(agent)
-        # Simulate one episode to evaluate
-        states = env.reset()
-        done = False
-        total_reward = 0
-        while not done:
-            actions = [ag.predict(st)[0] for ag, st in zip(agents, states)]
-            next_states, rews, dones, _ = env.step(actions)
-            total_reward += sum(rews)
-            states = next_states
-            done = any(dones)
-        return total_reward
-    else:
-        model = DQN('MlpPolicy', env, learning_rate=learning_rate, buffer_size=buffer_size, batch_size=batch_size, gamma=gamma, verbose=0, tensorboard_log="logs/optuna/")
-        model.learn(total_timesteps=10000)  # Reduced for tuning
-        # Evaluate
-        eval_env = make_env(cfg_path, use_sumo, use_marl)
-        obs = eval_env.reset()
-        total_reward = 0
-        done = False
-        while not done:
-            action, _ = model.predict(obs)
-            obs, reward, done, _ = eval_env.step(action)
-            total_reward += reward
-        return total_reward
-
-study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=50)
-print('Best hyperparameters:', study.best_params)
-# Use best params for full training
-best_params = study.best_params
-else:
-    best_params = {}  # Default params
-
-# Proceed with training using best_params
-if use_marl:
-    num_agents = env.num_agents
-    agents = []
-    for i in range(num_agents):
-        agent_env = DummyVecEnv([lambda: env])
-        agent = DQN('MlpPolicy', agent_env, **best_params, verbose=1, tensorboard_log=os.path.join(out_dir, 'tensorboard_logs'))
-        agents.append(agent)
-    for ep in trange(start_episode, episodes, desc="Training"):
-        states = env.reset()
-        ep_rewards = [0.0] * num_agents
-        done = False
-        while not done:
-            actions = [ag.predict(st)[0] for ag, st in zip(agents, states)]
-            next_states, rews, dones, _ = env.step(actions)
-            done = any(dones)
-            # Train each agent individually - this may need a custom loop for MARL
-            ep_rewards = [ep_rewards[i] + rews[i] for i in range(num_agents)]
-            states = next_states
-        rewards.append(np.mean(ep_rewards))
-        # Save using SB3 method
-        for i, ag in enumerate(agents):
-            ag.save(os.path.join(checkpoint_path, f'dqn_traffic_agent_{i}'))
-        np.save(os.path.join(checkpoint_path, 'rewards.npy'), np.array(rewards))
-else:
-    model = DQN('MlpPolicy', env, **best_params, verbose=1, tensorboard_log=os.path.join(out_dir, 'tensorboard_logs'))
-    if os.path.exists(os.path.join(checkpoint_path, 'dqn_model.zip')):
-        model = DQN.load(os.path.join(checkpoint_path, 'dqn_model'))
-        rewards = np.load(os.path.join(checkpoint_path, 'rewards.npy')).tolist()
-        start_episode = len(rewards)
-    else:
-        start_episode = 0
-        rewards = []
-
-    model.learn(total_timesteps=episodes * 1000, callback=checkpoint_callback)  # Assume 1000 steps per episode
-    rewards.extend([0] * (episodes - start_episode))  # Placeholder, extract rewards from logger or callback
-    model.save(os.path.join(out_dir, 'dqn_traffic'))
 
     np.save(os.path.join(out_dir, 'rewards.npy'), np.array(rewards))
     print(f"Average reward over {episodes} episodes: {np.mean(rewards):.2f}")
@@ -257,3 +209,4 @@ if __name__ == "__main__":
     parser.add_argument('--n_envs', type=int, default=1, help='Number of parallel environments (for single-agent only)')
     args = parser.parse_args()
     train(args.config, args.episodes, args.out, args.use_sumo, args.marl, args.tune)
+
