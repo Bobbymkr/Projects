@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+.DS_Store
+runs/
+checkpoints/
+logs/
+artifacts/

@@ -1,0 +1,17 @@
+# Minimal, compiler-free dependency set to run baseline RL + env on Windows (uses prebuilt wheels)
+numpy==2.3.2
+matplotlib==3.8.4
+opencv-python==4.10.0.84
+pydantic==2.7.1
+tqdm==4.66.4
+# Vision model
+ultralytics==8.3.33
+# RL dependencies
+gymnasium==0.29.1
+stable-baselines3==2.3.2
+# Testing dependencies
+pytest==8.3.3
+# Hyperparameter tuning
+optuna==3.6.1
+# For forecasting and TensorBoard
+tensorflow==2.17.0

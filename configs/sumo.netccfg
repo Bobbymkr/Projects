@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <input>
+        <node-files value="sumo.nod.xml" />
+        <edge-files value="sumo.edg.xml" />
+    </input>
+    <output>
+        <output-file value="sumo.net.xml" />
+    </output>
+</configuration>
