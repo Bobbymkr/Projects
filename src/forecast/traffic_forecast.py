@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Conv1D, MaxPooling1D, Flatten
 from tensorflow.keras.callbacks import TensorBoard
+import os
 
 class TrafficForecaster:
     """Traffic forecasting model using a hybrid CNN-LSTM architecture for time series prediction.
@@ -46,7 +47,7 @@ class TrafficForecaster:
         model.compile(optimizer='adam', loss='mse')
         return model
 
-    def train(self, X, y, epochs=50, batch_size=32, validation_split=0.2):
+    def train(self, X, y, epochs=50, batch_size=32, validation_split=0.2, log_dir=None):
         # Detailed comment: Train the model on provided data.
         # Parameters:
         # - X: Input data.
@@ -54,8 +55,16 @@ class TrafficForecaster:
         # - epochs: Number of training epochs.
         # - batch_size: Batch size for training.
         # - validation_split: Fraction of data for validation.
+        # - log_dir: Directory for TensorBoard logs.
         try:
-            self.model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=1, callbacks=[tensorboard_callback])
+            callbacks = []
+            if log_dir:
+                os.makedirs(log_dir, exist_ok=True)
+                tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
+                callbacks.append(tensorboard_callback)
+            
+            self.model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=1, 
+                          validation_split=validation_split, callbacks=callbacks)
         except Exception as e:
             raise RuntimeError(f"Training failed: {e}")
 

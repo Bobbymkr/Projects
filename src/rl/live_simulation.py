@@ -1,6 +1,5 @@
 """
 Live Traffic Simulation Visualization
-
 This script provides a real-time visual simulation of the traffic intersection
 showing vehicle queues, signal phases, and DQN agent decisions.
 """
@@ -224,3 +223,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

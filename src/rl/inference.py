@@ -2,8 +2,12 @@ import json
 import argparse
 import time
 import numpy as np
+import os
+import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 # Simulation (fallback) environment
 from src.env.traffic_env import TrafficEnv
@@ -104,7 +108,7 @@ def create_video_environment(traffic_config: Dict[str, Any],
 # Inference entry points
 # ------------------------------
 
-def run_inference(cfg_path: str, model_dir: str, use_sumo: bool = False, use_marl: bool = False):
+def run_inference(cfg_path: str, model_path: str, use_sumo: bool = False, use_marl: bool = False):
     """Run inference on the simulated TrafficEnv (or SumoEnv if flagged) and print the recommended green time.
     This is the original inference path for the synthetic environment.
     """
@@ -112,14 +116,14 @@ def run_inference(cfg_path: str, model_dir: str, use_sumo: bool = False, use_mar
     env = make_env(cfg, use_sumo, use_marl)
     if use_marl:
         for tl in env.intersections:
-            forecaster_path = os.path.join(model_dir, f'forecaster_{tl}.h5')
+            forecaster_path = os.path.join(model_path, f'forecaster_{tl}.h5')
             if os.path.exists(forecaster_path):
                 env.forecaster[tl].load(forecaster_path)
         num_agents = env.num_agents
         agents = []
         for i in range(num_agents):
             agent = DQNAgent(state_dim=env.observation_space[i].shape[0], action_dim=env.action_space[i].n, cfg=DQNConfig())
-            agent_path = os.path.join(model_dir, f'dqn_traffic_agent_{i}.npz')
+            agent_path = os.path.join(model_path, f'dqn_traffic_agent_{i}.npz')
             agent.load(agent_path)
             agents.append(agent)
         states = env.reset()
@@ -135,11 +139,12 @@ def run_inference(cfg_path: str, model_dir: str, use_sumo: bool = False, use_mar
         avg_reward = np.mean(total_rewards)
         print(f"Average reward over the episode: {avg_reward:.2f}")
         return
-    agent = DQNAgent(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, cfg=DQNConfig())
-    agent.load(model_path)
-
+    # Load the stable-baselines3 model
+    from stable_baselines3 import DQN
+    model = DQN.load(model_path)
+    
     obs, _ = env.reset()
-    action = agent.select_action(obs.astype(np.float32), evaluate=True)
+    action, _ = model.predict(obs, deterministic=True)
     green_sec = env.green_values[action]
     print(f"Recommended green time (seconds): {int(green_sec)}")
 

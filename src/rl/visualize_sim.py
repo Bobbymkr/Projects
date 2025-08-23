@@ -1,10 +1,13 @@
 import argparse
 import json
 import os
+import sys
 from typing import Dict, Any, List
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from src.env.traffic_env import TrafficEnv
 from src.rl.dqn_agent import DQNAgent, DQNConfig
@@ -21,15 +24,15 @@ def simulate(cfg_path: str, model_path: str | None, steps: int, seed: int) -> Di
 
     agent = None
     if model_path:
-        agent = DQNAgent(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, cfg=DQNConfig())
-        agent.load(model_path)
+        from stable_baselines3 import DQN
+        agent = DQN.load(model_path)
 
     obs, _ = env.reset(seed=seed)
 
     history: List[Dict[str, Any]] = []
     for _ in range(max(1, steps)):
         if agent is not None:
-            action = agent.select_action(obs.astype(np.float32), evaluate=True)
+            action, _ = agent.predict(obs, deterministic=True)
         else:
             action = int(np.random.randint(env.action_space.n))
 

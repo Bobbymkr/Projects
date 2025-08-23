@@ -26,7 +26,7 @@ import time
 import numpy as np
 
 from src.vision import VideoInputStream, VideoConfig, ROIManager, ROIConfig, YOLOQueueEstimator
-from src.env.traffic_env import Discrete, Box
+from gymnasium import spaces
 
 
 @dataclass
@@ -100,8 +100,8 @@ class VideoTrafficEnv:
 
         # Action and observation spaces compatible with TrafficEnv
         self.green_values = np.arange(self.cfg.min_green, self.cfg.max_green + 1, self.cfg.green_step, dtype=int)
-        self.action_space = Discrete(len(self.green_values))
-        self.observation_space = Box(low=0, high=cfg.get("queue_capacity", 100), shape=(self.cfg.num_lanes,), dtype=np.int32)
+        self.action_space = spaces.Discrete(len(self.green_values))
+        self.observation_space = spaces.Box(low=0, high=cfg.get("queue_capacity", 100), shape=(self.cfg.num_lanes,), dtype=np.int32)
 
         self.video = video_input
         self.roi_manager = roi_manager
