@@ -65,7 +65,7 @@ def draw_vehicle_queues(canvas: np.ndarray, queues: np.ndarray, phase: int, gree
     # Draw vehicles for each lane
     for i, (queue_count, lane) in enumerate(zip(queues, lane_positions)):
         # Limit queue display to prevent overcrowding
-        display_count = min(queue_count, 15)
+        display_count = min(int(queue_count), 15)
         
         for j in range(display_count):
             # Calculate vehicle position

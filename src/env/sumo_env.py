@@ -4,6 +4,9 @@ import traci.constants as tc
 from typing import Tuple, Dict, Any
 import gymnasium as gym
 from gymnasium import spaces
+import time as _time
+import subprocess as _subprocess
+import os as _os
 
 class SumoEnv(gym.Env):
     """SUMO-based traffic environment for a single intersection."""
@@ -37,6 +40,8 @@ class SumoEnv(gym.Env):
             "rrrrrrrGGGGGggrrrrrrrGGGGGgg"   # EW green from net.xml
         ]
         self.current_phase = 0
+        # handle to SUMO log file (if opened)
+        self._sumo_log_file = None
 
     def _get_queues(self):
         queues = np.zeros(self.num_directions, dtype=int)
@@ -60,13 +65,50 @@ class SumoEnv(gym.Env):
     def reset(self, *, seed: int | None = None, options: Dict[str, Any] | None = None) -> Tuple[np.ndarray, Dict[str, Any]]:
         if seed is not None:
             np.random.seed(seed)
+        # Close any existing connection
         if traci.isLoaded():
-            traci.close()
-        traci.start(["sumo", "-c", self.sumocfg])
+            try:
+                traci.close()
+            except Exception:
+                pass
+
+        # Prepare SUMO command and logfile redirection
+        sumo_cmd = ["sumo", "-c", self.sumocfg]
+        sumo_log = _os.environ.get('SUMO_LOG')
+        if sumo_log:
+            try:
+                self._sumo_log_file = open(sumo_log, 'a')
+            except Exception:
+                self._sumo_log_file = None
+
+        # Retry starting SUMO a few times if traci connection fails
+        start_retries = 3
+        for attempt in range(start_retries):
+            try:
+                if self._sumo_log_file:
+                    traci.start(sumo_cmd, stdout=self._sumo_log_file)
+                else:
+                    traci.start(sumo_cmd)
+                break
+            except Exception:
+                if attempt == start_retries - 1:
+                    # Re-raise the last exception
+                    raise
+                else:
+                    _time.sleep(0.5)
         traci.trafficlight.subscribe(self.tls_id, (tc.TL_RED_YELLOW_GREEN_STATE,))
         self.current_phase = 0
         self._set_phase(self.current_phase, self.min_green)  # Initial setup
-        traci.simulationStep()
+        # Advance one simulation step with retries to handle transient TraCI socket issues
+        sim_retries = 3
+        for attempt in range(sim_retries):
+            try:
+                traci.simulationStep()
+                break
+            except traci.exceptions.TraCIException:
+                if attempt == sim_retries - 1:
+                    raise
+                _time.sleep(0.1)
         queues = self._get_queues()
         info = {"phase": self.current_phase}
         return queues.astype(np.float32), info  # Change to float32 for SB3 compatibility
@@ -110,6 +152,16 @@ class SumoEnv(gym.Env):
         try:
             traci.close()
         except traci.exceptions.TraCIException:
+            pass
+        # Close the SUMO logfile if we opened one
+        try:
+            if getattr(self, '_sumo_log_file', None):
+                try:
+                    self._sumo_log_file.close()
+                except Exception:
+                    pass
+                self._sumo_log_file = None
+        except Exception:
             pass
 
     def render(self, mode='human'):

@@ -12,6 +12,8 @@ import os
 import sys
 import subprocess
 import time
+import shutil
+import argparse
 
 def run_command(cmd, description):
     """Run a command and print its output."""
@@ -39,6 +41,11 @@ def run_command(cmd, description):
         return False
 
 def main():
+    parser = argparse.ArgumentParser(description="Adaptive Traffic demo")
+    parser.add_argument('--force-sumo', action='store_true', help='Force using SUMO even if not auto-detected')
+    parser.add_argument('--no-sumo', action='store_true', help='Disable SUMO even if auto-detected')
+    args = parser.parse_args()
+
     print("🚦 Adaptive Traffic Signal Control System")
     print("=" * 60)
     print("This demo will showcase the intelligent traffic signal control system")
@@ -49,13 +56,45 @@ def main():
     if not os.path.exists(".venv"):
         print(" Virtual environment not found. Please run the setup first.")
         return
+
+    # Detect SUMO availability and enable SUMO mode automatically if present
+    def _sumo_available() -> bool:
+        try:
+            return shutil.which("sumo") is not None
+        except Exception:
+            return False
+
+    detected_sumo = _sumo_available()
+    # Command-line overrides
+    if args.force_sumo:
+        use_sumo = True
+    elif args.no_sumo:
+        use_sumo = False
+    else:
+        use_sumo = detected_sumo
+
+    print(f" SUMO auto-detected: {detected_sumo}; using SUMO: {use_sumo}")
+
+    # Ensure runs dir exists and set SUMO log path for SumoEnv
+    runs_dir = os.path.join(os.getcwd(), 'runs')
+    try:
+        os.makedirs(runs_dir, exist_ok=True)
+    except Exception:
+        pass
+    os.environ.setdefault('SUMO_LOG', os.path.join(runs_dir, 'sumo.log'))
+    if use_sumo:
+        print(f" Writing SUMO logs to: {os.environ.get('SUMO_LOG')}")
     
     # Step 1: Quick training
     print(" Step 1: Training the DQN Agent")
     print("Training a DQN agent on a 4-lane intersection for 5 episodes...")
     
+    train_cmd = "python src/rl/train_dqn.py --episodes 5 --config configs/intersection.json"
+    if use_sumo:
+        train_cmd += " --use_sumo"
+
     success = run_command(
-        "python src/rl/train_dqn.py --episodes 5 --config configs/intersection.json",
+        train_cmd,
         "Training DQN Agent (5 episodes)"
     )
     
@@ -67,8 +106,12 @@ def main():
     print("\n Step 2: Running Inference with Trained Model")
     print("The trained agent will now recommend optimal green light durations...")
     
+    infer_cmd = "python src/rl/inference.py sim --model runs/dqn_traffic.zip"
+    if use_sumo:
+        infer_cmd += " --use_sumo"
+
     success = run_command(
-        "python src/rl/inference.py sim --model runs/dqn_traffic.zip",
+        infer_cmd,
         "Running Inference with Trained Model"
     )
     

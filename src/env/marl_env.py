@@ -4,6 +4,8 @@ import traci
 import numpy as np
 import os
 import sys
+import time
+import shutil
 from collections import defaultdict, deque
 from src.forecast.traffic_forecast import TrafficForecaster
 
@@ -83,8 +85,48 @@ class MarlEnv(gym.Env):
 
     def _start_sumo(self):
         # Detailed comment: Launch the SUMO simulation via TraCI.
-        sumo_binary = os.path.join(os.environ['SUMO_HOME'], 'bin', 'sumo')
+        # Resolve SUMO binary
+        sumo_home = os.environ.get('SUMO_HOME')
+        if sumo_home:
+            sumo_binary = os.path.join(sumo_home, 'bin', 'sumo')
+        else:
+            sumo_binary = shutil.which('sumo')
+
+        if not sumo_binary:
+            raise RuntimeError('SUMO binary not found (set SUMO_HOME or put sumo on PATH)')
+
         sumo_cmd = [sumo_binary, '-c', self.config_path]
+
+        # Try to start SUMO, handling an existing connection if present.
+        attempts = 3
+        for attempt in range(attempts):
+            try:
+                traci.start(sumo_cmd)
+                return
+            except traci.exceptions.TraCIException as e:
+                msg = str(e)
+                # If a previous connection is active, try to close and retry
+                if 'already active' in msg or 'already exists' in msg:
+                    try:
+                        traci.close()
+                    except Exception:
+                        pass
+                    # Try clearing private connection registry if close() didn't work
+                    if hasattr(traci, '_connections'):
+                        try:
+                            traci._connections.clear()
+                        except Exception:
+                            pass
+                    if hasattr(traci, 'connection'):
+                        try:
+                            delattr(traci, 'connection')
+                        except Exception:
+                            pass
+                    time.sleep(0.1)
+                    continue
+                # Other transient failures: wait and retry a couple times
+                time.sleep(0.5)
+        # Final attempt (let exception bubble if it fails)
         traci.start(sumo_cmd)
 
     def _get_base_state(self, tl_id):
