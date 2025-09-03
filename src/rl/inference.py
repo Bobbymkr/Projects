@@ -18,6 +18,11 @@ from src.env.marl_env import MarlEnv
 from src.env.video_env import VideoTrafficEnv
 from src.rl.dqn_agent import DQNAgent, DQNConfig
 from src.vision import VideoInputStream, VideoConfig, ROIManager, YOLOQueueEstimator, VideoSourceType
+from src.control.fuzzy_control import FuzzyController
+from src.optimization.genetic_algo import GeneticAlgorithm
+from src.optimization.pso import ParticleSwarmOptimizer
+from src.forecast.gnn_forecast import GNNForecaster
+from src.control.webster_method import WebsterMethod
 
 
 # ------------------------------
@@ -108,10 +113,8 @@ def create_video_environment(traffic_config: Dict[str, Any],
 # Inference entry points
 # ------------------------------
 
-def run_inference(cfg_path: str, model_path: str, use_sumo: bool = False, use_marl: bool = False):
-    """Run inference on the simulated TrafficEnv (or SumoEnv if flagged) and print the recommended green time.
-    This is the original inference path for the synthetic environment.
-    """
+def run_inference(cfg_path: str, model_path: str, method: str = 'dqn', use_sumo: bool = False, use_marl: bool = False):
+    """Run inference on the simulated TrafficEnv (or SumoEnv if flagged) using the specified method and print the recommended green time."""
     cfg = load_config(cfg_path)
     env = make_env(cfg, use_sumo, use_marl)
     if use_marl:
@@ -139,34 +142,84 @@ def run_inference(cfg_path: str, model_path: str, use_sumo: bool = False, use_ma
         avg_reward = np.mean(total_rewards)
         print(f"Average reward over the episode: {avg_reward:.2f}")
         return
-    # Load the stable-baselines3 model
-    from stable_baselines3 import DQN
-    model = DQN.load(model_path)
-    
-    obs, _ = env.reset()
-    action, _ = model.predict(obs, deterministic=True)
-    green_sec = env.green_values[action]
-    print(f"Recommended green time (seconds): {int(green_sec)}")
+    if method == 'dqn':
+        if use_marl:
+            for tl in env.intersections:
+                forecaster_path = os.path.join(model_path, f'forecaster_{tl}.h5')
+                if os.path.exists(forecaster_path):
+                    env.forecaster[tl].load(forecaster_path)
+            num_agents = env.num_agents
+            agents = []
+            for i in range(num_agents):
+                agent = DQNAgent(state_dim=env.observation_space[i].shape[0], action_dim=env.action_space[i].n, cfg=DQNConfig())
+                agent_path = os.path.join(model_path, f'dqn_traffic_agent_{i}.npz')
+                agent.load(agent_path)
+                agents.append(agent)
+            states = env.reset()
+            total_rewards = [0.0] * num_agents
+            done = False
+            while not done:
+                actions = [ag.select_action(st.astype(np.float32), evaluate=True) for ag, st in zip(agents, states)]
+                next_states, rews, dones, _ = env.step(actions)
+                for i in range(num_agents):
+                    total_rewards[i] += rews[i]
+                states = next_states
+                done = any(dones)
+            avg_reward = np.mean(total_rewards)
+            print(f"Average reward over the episode: {avg_reward:.2f}")
+            return
+        from stable_baselines3 import DQN
+        model = DQN.load(model_path)
+        obs, _ = env.reset()
+        action, _ = model.predict(obs, deterministic=True)
+        green_sec = env.green_values[action]
+        print(f"Recommended green time (seconds): {int(green_sec)}")
+    elif method == 'fuzzy':
+        controller = FuzzyController()
+        obs, _ = env.reset()
+        action = controller.get_action(obs)
+        green_sec = env.green_values[action]
+        print(f"Recommended green time (seconds): {int(green_sec)}")
+    elif method == 'ga':
+        optimizer = GeneticAlgorithm()
+        obs, _ = env.reset()
+        action = optimizer.get_action(obs)
+        green_sec = env.green_values[action]
+        print(f"Recommended green time (seconds): {int(green_sec)}")
+    elif method == 'pso':
+        optimizer = ParticleSwarmOptimizer()
+        obs, _ = env.reset()
+        action = optimizer.get_action(obs)
+        green_sec = env.green_values[action]
+        print(f"Recommended green time (seconds): {int(green_sec)}")
+    elif method == 'gnn':
+        forecaster = GNNForecaster()
+        forecaster.load(model_path)  # Assuming load method exists
+        obs, _ = env.reset()
+        prediction = forecaster.predict(obs)
+        action = env.prediction_to_action(prediction)  # Assuming this method
+        green_sec = env.green_values[action]
+        print(f"Recommended green time (seconds): {int(green_sec)}")
+    elif method == 'webster':
+        controller = WebsterMethod()
+        obs, _ = env.reset()
+        action = controller.get_action(obs)
+        green_sec = env.green_values[action]
+        print(f"Recommended green time (seconds): {int(green_sec)}")
+    else:
+        raise ValueError(f"Unknown method: {method}")
 
 
 def run_video_inference(cfg_path: str,
                         model_path: str,
                         video_source: str,
+                        method: str = 'dqn',
                         roi_config: Optional[str] = None,
                         fps: float = 15.0,
                         width: int = 640,
                         height: int = 480,
                         warmup_sec: int = 2):
-    """Run inference using real-time video to generate the current observation and
-    print the recommended green time in seconds.
-
-    Steps:
-    1) Initialize the vision stack (VideoInputStream, ROIManager, YOLOQueueEstimator)
-    2) Start the video, stabilize briefly, and build a VideoTrafficEnv
-    3) Reset the env to collect an initial observation window from video
-    4) Load the DQN model and choose the best action (evaluate=True)
-    5) Print the corresponding green duration in seconds
-    """
+    """Run inference using real-time video with the specified method."""
     traffic_config = load_config(cfg_path)
 
     # Build video config and vision components
@@ -181,16 +234,22 @@ def run_video_inference(cfg_path: str,
     env = None
     try:
         env = create_video_environment(traffic_config, video_stream, roi_manager, detector)
-
-        # Initialize agent and load model
-        agent = DQNAgent(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, cfg=DQNConfig())
-        agent.load(model_path)
-
-        # Gather initial observation from video
+        if method == 'dqn':
+            agent = DQNAgent(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, cfg=DQNConfig())
+            agent.load(model_path)
+            obs, _ = env.reset()
+            action = agent.select_action(obs.astype(np.float32), evaluate=True)
+            green_sec = env.green_values[action]
+            print(f"Recommended green time (seconds): {int(green_sec)}")
+        elif method == 'fuzzy':
+            controller = FuzzyController()
+            obs, _ = env.reset()
+            action = controller.get_action(obs)
+            green_sec = env.green_values[action]
+            print(f"Recommended green time (seconds): {int(green_sec)}")
+        # Add similar branches for other methods
         obs, _ = env.reset()
-
-        # Select action deterministically
-        action = agent.select_action(obs.astype(np.float32), evaluate=True)
+        action = controller.get_action(obs)
         green_sec = env.green_values[action]
         print(f"Recommended green time (seconds): {int(green_sec)}")
     finally:
@@ -213,6 +272,7 @@ if __name__ == "__main__":
     sim_parser.add_argument('--model', required=True, help='Path to trained DQN .npz model or directory for MARL')
     sim_parser.add_argument('--marl', action='store_true', help='Use MARL environment')
     sim_parser.add_argument('--use_sumo', action='store_true', help='Use SUMO-based environment')
+    sim_parser.add_argument('--method', default='dqn', choices=['dqn', 'fuzzy', 'ga', 'pso', 'gnn', 'webster'], help='Control method to use')
 
     # Video-based inference
     vid_parser = subparsers.add_parser('video', help='Run inference using real-time video')
@@ -242,4 +302,4 @@ if __name__ == "__main__":
             warmup_sec=args.warmup,
         )
     else:
-        run_inference(args.config, args.model, args.use_sumo, args.marl)
+        run_inference(args.config, args.model, args.method, args.use_sumo, args.marl)

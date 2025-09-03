@@ -40,22 +40,12 @@ class TrafficEnv(gym.Env):
         self.action_space = spaces.Discrete(len(self.green_values))
 
         # Observation space: queue length per lane (normalized)
-        # Use a lightweight object exposing the attributes tests expect
-        # (shape, dtype, low, high) so equality checks with scalars work.
-        try:
-            box = spaces.Box(low=0.0, high=1.0, shape=(self.num_lanes,), dtype=np.float32)
-            self.observation_space = types.SimpleNamespace(
-                shape=box.shape,
-                dtype=box.dtype,
-                low=0.0,
-                high=1.0,
-                _box=box,
-            )
-        except Exception:
-            # Fallback in case gym Box construction fails in some environments
-            self.observation_space = types.SimpleNamespace(
-                shape=(self.num_lanes,), dtype=np.float32, low=0.0, high=1.0, _box=None
-            )
+        self.observation_space = spaces.Box(
+            low=0.0, 
+            high=1.0, 
+            shape=(self.num_lanes,), 
+            dtype=np.float32
+        )
 
         # Simulation parameters
         self.time = 0
