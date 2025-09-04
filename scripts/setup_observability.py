@@ -303,6 +303,329 @@ def observe_histogram(name: str, value: float, labels: Dict[str, str] = None) ->
     return metrics_path
 
 
+def create_tracing_utility():
+    """
+    Create a tracing.py utility in src/utils for OpenTelemetry.
+    """
+    # Ensure the utils directory exists
+    utils_dir = project_root / "src" / "utils"
+    utils_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create the tracing.py file
+    tracing_path = utils_dir / "tracing.py"
+    
+    tracing_content = """
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Tracing utilities for the Adaptive Traffic project.
+
+This module provides utilities for distributed tracing using OpenTelemetry.
+"""
+
+import json
+from functools import wraps
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional
+
+# Import optional dependencies
+try:
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import (
+        BatchSpanProcessor,
+        ConsoleSpanExporter,
+    )
+    OPENTELEMETRY_AVAILABLE = True
+except ImportError:
+    OPENTELEMETRY_AVAILABLE = False
+
+# Load configuration
+config_path = Path(__file__).resolve().parent.parent.parent / "configs" / "observability.json"
+if config_path.exists():
+    with open(config_path, "r") as f:
+        CONFIG = json.load(f)
+else:
+    CONFIG = {
+        "opentelemetry": {
+            "enabled": False,
+            "service_name": "adaptive_traffic",
+            "exporter": "console",
+            "endpoint": None
+        }
+    }
+
+_TRACER = None
+
+
+def init_tracer() -> Optional[trace.Tracer]:
+    """Initialize the OpenTelemetry tracer.
+    
+    Returns:
+        The tracer object, or None if not enabled.
+    """
+    global _TRACER
+    if _TRACER:
+        return _TRACER
+    
+    if not OPENTELEMETRY_AVAILABLE or not CONFIG["opentelemetry"]["enabled"]:
+        return None
+    
+    provider = TracerProvider()
+    
+    exporter_type = CONFIG["opentelemetry"].get("exporter", "console")
+    if exporter_type == "console":
+        exporter = ConsoleSpanExporter()
+    else:
+        # Add other exporters like Jaeger, Zipkin here
+        exporter = ConsoleSpanExporter()
+    
+    processor = BatchSpanProcessor(exporter)
+    provider.add_span_processor(processor)
+    trace.set_tracer_provider(provider)
+    
+    service_name = CONFIG["opentelemetry"].get("service_name", "adaptive_traffic")
+    _TRACER = trace.get_tracer(service_name)
+    
+    return _TRACER
+
+
+def get_tracer() -> Optional[trace.Tracer]:
+    """Get the initialized tracer.
+    
+    Returns:
+        The tracer object, or None if not initialized.
+    """
+    return _TRACER or init_tracer()
+
+
+def trace_function(name: Optional[str] = None):
+    """Decorator for tracing function execution.
+    
+    Args:
+        name: Optional name for the span. If not provided, uses the function name.
+    
+    Returns:
+        Decorated function.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            tracer = get_tracer()
+            if not tracer:
+                return func(*args, **kwargs)
+            
+            span_name = name or f"{func.__module__}.{func.__name__}"
+            with tracer.start_as_current_span(span_name) as span:
+                try:
+                    result = func(*args, **kwargs)
+                    span.set_status(trace.Status(trace.StatusCode.OK))
+                    return result
+                except Exception as e:
+                    span.set_status(trace.Status(trace.StatusCode.ERROR, str(e)))
+                    span.record_exception(e)
+                    raise
+        return wrapper
+    return decorator
+"""
+    
+    with open(tracing_path, "w") as f:
+        f.write(tracing_content)
+    
+    print(f"Created tracing utility at {tracing_path}")
+    return tracing_path
+
+
+def create_dashboard_utility():
+    """
+    Create a dashboard.py utility in src/utils for Grafana.
+    """
+    # Ensure the utils directory exists
+    utils_dir = project_root / "src" / "utils"
+    utils_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create the dashboard.py file
+    dashboard_path = utils_dir / "dashboard.py"
+    
+    dashboard_content = """
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Dashboard utilities for the Adaptive Traffic project.
+
+This module provides utilities for creating and managing Grafana dashboards.
+"""
+
+import json
+from pathlib import Path
+
+# Import optional dependencies
+try:
+    from grafana_api.grafana_face import GrafanaFace
+    GRAFANA_AVAILABLE = True
+except ImportError:
+    GRAFANA_AVAILABLE = False
+
+# Load configuration
+config_path = Path(__file__).resolve().parent.parent.parent / "configs" / "observability.json"
+if config_path.exists():
+    with open(config_path, "r") as f:
+        CONFIG = json.load(f)
+else:
+    CONFIG = {
+        "grafana": {
+            "enabled": False,
+            "host": "localhost",
+            "port": 3000,
+            "username": "admin",
+            "password": "admin"
+        }
+    }
+
+_GRAFANA_CLIENT = None
+
+
+def init_grafana() -> GrafanaFace:
+    """Initialize the Grafana API client."""
+    global _GRAFANA_CLIENT
+    if _GRAFANA_CLIENT:
+        return _GRAFANA_CLIENT
+    
+    if not GRAFANA_AVAILABLE or not CONFIG["grafana"]["enabled"]:
+        return None
+    
+    try:
+        _GRAFANA_CLIENT = GrafanaFace(
+            auth=(CONFIG["grafana"]["username"], CONFIG["grafana"]["password"]),
+            host=CONFIG["grafana"]["host"],
+            port=CONFIG["grafana"]["port"]
+        )
+    except Exception as e:
+        print(f"Failed to connect to Grafana: {e}")
+        return None
+    
+    return _GRAFANA_CLIENT
+
+
+def create_traffic_dashboard():
+    """Create a default traffic dashboard in Grafana."""
+    client = init_grafana()
+    if not client:
+        print("Grafana is not enabled or available.")
+        return
+    
+    dashboard = {
+        "dashboard": {
+            "id": None,
+            "title": "Adaptive Traffic Dashboard",
+            "tags": ["traffic", "sumo"],
+            "timezone": "browser",
+            "schemaVersion": 16,
+            "version": 0,
+            "refresh": "25s"
+        },
+        "folderId": 0,
+        "overwrite": False
+    }
+    
+    try:
+        client.dashboard.update_dashboard(dashboard=dashboard)
+        print("Successfully created/updated Grafana dashboard.")
+    except Exception as e:
+        print(f"Failed to create/update Grafana dashboard: {e}")
+
+"""
+    
+    with open(dashboard_path, "w") as f:
+        f.write(dashboard_content)
+    
+    print(f"Created dashboard utility at {dashboard_path}")
+    return dashboard_path
+
+
+def create_observability_example():
+    """
+    Create an observability_example.py in the examples directory.
+    """
+    # Ensure the examples directory exists
+    examples_dir = project_root / "examples"
+    examples_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create the example file
+    example_path = examples_dir / "observability_example.py"
+    
+    example_content = """
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Example usage of observability components.
+"""
+
+import time
+import random
+
+from src.utils.metrics import (
+    Timer,
+    time_function,
+    increment_counter,
+    set_gauge,
+    observe_histogram,
+)
+from src.utils.tracing import trace_function, get_tracer
+
+
+@trace_function()
+@time_function()
+def process_data():
+    """Simulate some data processing."""
+    print("Processing data...")
+    # Simulate work
+    time.sleep(random.uniform(0.1, 0.5))
+    
+    # Increment a counter
+    increment_counter("data_processed_total", labels={"type": "example"})
+    
+    # Set a gauge
+    set_gauge("active_workers", random.randint(1, 10))
+    
+    # Observe a histogram
+    observe_histogram("processing_latency_seconds", random.random())
+    
+    print("Data processing complete.")
+
+
+def main():
+    """Main function to run the example."""
+    print("Running observability example...")
+    
+    # Initialize tracer
+    tracer = get_tracer()
+    
+    if tracer:
+        with tracer.start_as_current_span("main_span"):
+            for i in range(5):
+                process_data()
+    else:
+        for i in range(5):
+            process_data()
+            
+    print("Observability example complete.")
+
+
+if __name__ == "__main__":
+    main()
+"""
+    
+    with open(example_path, "w") as f:
+        f.write(example_content)
+    
+    print(f"Created observability example at {example_path}")
+    return example_path
+
+
 def create_observability_config():
     """
     Create an observability.json configuration file in the configs directory.
@@ -368,6 +691,15 @@ def main():
     
     # Create the metrics utility
     create_metrics_utility()
+    
+    # Create the tracing utility
+    create_tracing_utility()
+    
+    # Create the dashboard utility
+    create_dashboard_utility()
+    
+    # Create the observability example
+    create_observability_example()
     
     print("Observability components set up successfully!")
 
