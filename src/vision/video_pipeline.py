@@ -125,7 +125,7 @@ class VideoInputStream:
             )
             logger.info(f"Recording enabled: {recording_path}")
         except Exception as e:
-             logger.error(f"Failed to setup recording: {{e}}")
+            logger.error("Failed to setup recording due to an internal error.")
             self.video_writer = None
 
     def start(self) -> bool:
