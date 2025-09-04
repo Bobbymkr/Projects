@@ -66,7 +66,7 @@ class TrafficForecaster:
             self.model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=1, 
                           validation_split=validation_split, callbacks=callbacks)
         except Exception as e:
-            raise RuntimeError(f"Training failed: {e}")
+            raise RuntimeError("Training failed due to an internal error.")
 
     def predict(self, X):
         # Detailed comment: Make predictions using the trained model.
@@ -76,7 +76,7 @@ class TrafficForecaster:
         try:
             return self.model.predict(X)
         except Exception as e:
-            raise RuntimeError(f"Prediction failed: {e}")
+            raise RuntimeError("Prediction failed due to an internal error.")
 
     def save(self, path):
         # Detailed comment: Save the model to a file.
@@ -95,4 +95,4 @@ class TrafficForecaster:
             forecaster.model = model
             return forecaster
         except Exception as e:
-            raise RuntimeError(f"Model loading failed: {e}")
+            raise RuntimeError("Model loading failed due to an internal error.")

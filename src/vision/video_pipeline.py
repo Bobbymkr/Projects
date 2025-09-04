@@ -125,7 +125,7 @@ class VideoInputStream:
             )
             logger.info(f"Recording enabled: {recording_path}")
         except Exception as e:
-            logger.error(f"Failed to setup recording: {e}")
+             logger.error(f"Failed to setup recording: {{e}}")
             self.video_writer = None
 
     def start(self) -> bool:
@@ -164,7 +164,7 @@ class VideoInputStream:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to start video stream: {e}")
+            logger.error("Failed to start video stream due to an internal error.")
             self.stats["connection_status"] = "error"
             return False
 
@@ -225,7 +225,7 @@ class VideoInputStream:
                 self._update_fps_stats(current_time)
                 
             except Exception as e:
-                logger.error(f"Error in capture loop: {e}")
+                logger.error("Error in capture loop due to an internal error.")
                 time.sleep(0.1)  # Brief pause before retry
 
     def _preprocess_frame(self, frame: np.ndarray) -> np.ndarray:
@@ -258,7 +258,7 @@ class VideoInputStream:
             else:
                 self.stats["connection_status"] = "reconnecting"
         except Exception as e:
-            logger.error(f"Reconnection failed: {e}")
+            logger.error("Reconnection failed due to an internal error.")
             self.stats["connection_status"] = "error"
 
     def _update_fps_stats(self, current_time: float):

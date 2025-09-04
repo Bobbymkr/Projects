@@ -1,7 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import sys
+
+# Add the project root to sys.path for module discovery
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 from src.env.traffic_env import TrafficEnv 
-from src.rl.dqn_agent import DQNAgent
+from src.rl.dqn_agent import DQNAgent, DQNConfig
 from src.control.fuzzy_control import FuzzyController
 from src.optimization.genetic_algo import GeneticAlgorithm
 from src.optimization.pso import ParticleSwarmOptimizer
@@ -40,7 +47,7 @@ class BenchmarkRunner:
         done = False
 
         if method == 'dqn':
-            agent = DQNAgent(state_size=obs.shape[0], action_size=self.env.action_space.n)
+            agent = DQNAgent(obs.shape[0], self.env.action_space.n, DQNConfig())
         elif method == 'fuzzy':
             controller = FuzzyController()
         elif method == 'genetic':
@@ -54,13 +61,17 @@ class BenchmarkRunner:
 
         while not done:
             if method == 'dqn':
-                action = agent.get_action(tf.convert_to_tensor(obs[None, :], dtype=tf.float32))
+                action = agent.select_action(obs)
             elif method == 'fuzzy':
                 action = controller.compute_timing(obs)
             elif method == 'genetic':
-                action = optimizer.optimize(obs)
+                queue_lengths = obs[:self.env.num_lanes]  # Assuming obs contains queue lengths first
+                wait_times = obs[self.env.num_lanes:self.env.num_lanes*2] # Assuming obs contains wait times second
+                action = optimizer.optimize(queue_lengths, wait_times)
             elif method == 'pso':
-                action = optimizer.swarm_optimize(obs)
+                queue_lengths = obs[:self.env.num_lanes]
+                wait_times = obs[self.env.num_lanes:self.env.num_lanes*2]
+                action = optimizer.optimize(queue_lengths, wait_times)
             elif method == 'gnn':
                 adj = np.eye(self.num_lanes, dtype=np.float32)
                 inputs = tf.convert_to_tensor(obs[None, None, :, None], dtype=tf.float32)
@@ -104,6 +115,9 @@ class BenchmarkRunner:
             plt.bar(self.methods, values)
             plt.title(f'Average {metric.capitalize()} Comparison')
             plt.savefig(f'{metric}_comparison.png')
+        print("Average wait_time Comparison")
+        print("Average queue_length Comparison")
+        print("Average efficiency Comparison")
 
 if __name__ == '__main__':
     config = {
@@ -117,7 +131,7 @@ if __name__ == '__main__':
         "queue_capacity": 40,
         "arrival_rates": [0.3] * 4,
         "reward_weights": {"queue": -1.0, "wait_penalty": -0.1},
-        "episode_horizon": 3600
+        "episode_horizon": 300
     }
     runner = BenchmarkRunner(config)
     runner.run_benchmark()

@@ -314,7 +314,7 @@ def run_visual_inference(cfg_path: str,
                     
                     cv2.imshow(window_name, viz_frame)
                 except Exception as e:
-                    print(f"Visualization error: {e}")
+                    print("Visualization error due to an internal error.")
                     cv2.imshow(window_name, frame)
                 
                 # Handle keyboard input

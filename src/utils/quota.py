@@ -255,8 +255,8 @@ class Alerter:
             }
             
             requests.post(self.slack_webhook, json=payload, timeout=5)
-        except Exception as e:
-            logger.error(f"Failed to send Slack alert: {e}")
+        except Exception:
+            logger.error("Failed to send Slack alert.")
     
     def _send_email_alert(self, message: str, level: str) -> None:
         """Send alert via email."""
@@ -281,8 +281,8 @@ class Alerter:
             
             server.send_message(msg)
             server.quit()
-        except Exception as e:
-            logger.error(f"Failed to send email alert: {e}")
+        except Exception:
+            logger.error("Failed to send email alert.")
 
 
 class RequestQuotaManager:
@@ -323,8 +323,8 @@ class RequestQuotaManager:
                 try:
                     self.store = RedisQuotaStore()
                     logger.info("Using Redis for quota storage")
-                except Exception as e:
-                    logger.warning(f"Failed to connect to Redis: {e}. Falling back to SQLite.")
+                except Exception:
+                    logger.warning("Failed to connect to Redis. Falling back to SQLite.")
                     self.store = SQLiteQuotaStore("quota.db")
             else:
                 self.store = SQLiteQuotaStore("quota.db")
@@ -357,8 +357,8 @@ class RequestQuotaManager:
             self.window_hours = config.get("window", 24)
             
             logger.info(f"Loaded quota config from {config_path}")
-        except Exception as e:
-            logger.error(f"Failed to load quota config from {config_path}: {e}")
+        except Exception:
+            logger.error(f"Failed to load quota config from {config_path}.")
             # Use defaults
             self.max_requests = 150
             self.alert_at_remaining = 10

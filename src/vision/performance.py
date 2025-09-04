@@ -170,7 +170,7 @@ class ResourceMonitor:
                 metrics.gpu_memory_total_mb = gpu_memory.total / (1024**2)
                 metrics.gpu_temperature = gpu_temp
             except Exception as e:
-                logger.debug(f"GPU metrics collection failed: {e}")
+                logger.debug("GPU metrics collection failed due to an internal error.")
         
         return metrics
     
@@ -247,7 +247,7 @@ class PerformanceMonitor:
             try:
                 self.save_stats()
             except Exception as e:
-                logger.error(f"Failed to auto-save stats: {e}")
+                logger.error("Failed to auto-save stats due to an internal error.")
     
     @contextmanager
     def timer(self, name: str):
@@ -380,7 +380,7 @@ class PerformanceMonitor:
                     self.metrics_history = self.metrics_history[-500:]
                     
         except Exception as e:
-            logger.error(f"Failed to log performance: {e}")
+            logger.error("Failed to log performance due to an internal error.")
     
     def save_stats(self):
         """Save statistics to file."""
@@ -398,7 +398,7 @@ class PerformanceMonitor:
             logger.debug(f"Performance stats saved to {self.stats_file}")
             
         except Exception as e:
-            logger.error(f"Failed to save stats: {e}")
+            logger.error("Failed to save stats due to an internal error.")
     
     def reset_stats(self):
         """Reset all performance statistics."""

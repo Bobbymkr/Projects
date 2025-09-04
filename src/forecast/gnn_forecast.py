@@ -10,7 +10,7 @@ class GraphConvLayer(layers.Layer):
         self.activation = tf.keras.activations.get(activation)
 
     def build(self, input_shape):
-        self.kernel = self.add_weight("kernel", shape=(input_shape[-1], self.output_dim))
+        self.kernel = self.add_weight(name="kernel", shape=(input_shape[-1], self.output_dim), initializer='glorot_uniform')
 
     def call(self, inputs, adj_matrix):
         """Perform graph convolution: aggregate neighbor features."""

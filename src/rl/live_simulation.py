@@ -124,7 +124,7 @@ def draw_info_panel(canvas: np.ndarray, queues: np.ndarray, phase: int, green_ti
     return combined
 
 
-def run_live_simulation(cfg_path: str, model_path: str = None, steps: int = 100, delay: float = 0.5):
+def run_live_simulation(cfg_path: str, model_path: str = None, steps: int = 100, delay: float = 0.5, no_display: bool = False):
     """Run a live visual simulation of the traffic intersection."""
     # Load configuration and environment
     cfg = load_config(cfg_path)
@@ -143,13 +143,16 @@ def run_live_simulation(cfg_path: str, model_path: str = None, steps: int = 100,
     # Initialize environment
     obs, _ = env.reset()
     
-    # Create visualization window
-    window_name = "Adaptive Traffic Signal Control - Live Simulation"
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(window_name, 900, 750)
-    
-    print("Live simulation started! Press 'q' to quit, 'p' to pause/resume")
-    print("Green circles = vehicles, Green signal = active phase, Red signal = inactive phase")
+    # Create visualization window only if not in no_display mode
+    if not no_display:
+        window_name = "Adaptive Traffic Signal Control - Live Simulation"
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(window_name, 900, 750)
+        
+        print("Live simulation started! Press 'q' to quit, 'p' to pause/resume")
+        print("Green circles = vehicles, Green signal = active phase, Red signal = inactive phase")
+    else:
+        print("Live simulation started in no-display mode.")
     
     paused = False
     step_count = 0
@@ -172,14 +175,15 @@ def run_live_simulation(cfg_path: str, model_path: str = None, steps: int = 100,
                 green_time = env.green_values[action] if info.get("green_active", False) else 0
                 total_time = time.time() - start_time
                 
-                # Create visualization
-                canvas = create_intersection_visualization()
-                canvas = draw_vehicle_queues(canvas, next_obs, current_phase, green_time)
-                canvas = draw_info_panel(canvas, next_obs, current_phase, green_time, 
-                                       reward, step_count, total_time)
-                
-                # Display the visualization
-                cv2.imshow(window_name, canvas)
+                # Create and display visualization only if not in no_display mode
+                if not no_display:
+                    canvas = create_intersection_visualization()
+                    canvas = draw_vehicle_queues(canvas, next_obs, current_phase, green_time)
+                    canvas = draw_info_panel(canvas, next_obs, current_phase, green_time, 
+                                           reward, step_count, total_time)
+                    
+                    # Display the visualization
+                    cv2.imshow(window_name, canvas)
                 
                 # Update state
                 obs = next_obs
@@ -189,13 +193,18 @@ def run_live_simulation(cfg_path: str, model_path: str = None, steps: int = 100,
                 if terminated or truncated:
                     obs, _ = env.reset()
             
-            # Handle key presses
-            key = cv2.waitKey(int(delay * 1000)) & 0xFF
-            if key == ord('q'):
-                break
-            elif key == ord('p'):
-                paused = not paused
-                print("Paused" if paused else "Resumed")
+            # Handle key presses only if not in no_display mode
+            if not no_display:
+                key = cv2.waitKey(int(delay * 1000)) & 0xFF
+                if key == ord('q'):
+                    break
+                elif key == ord('p'):
+                    paused = not paused
+                    print("Paused" if paused else "Resumed")
+            else:
+                # In no_display mode, just break if steps are done
+                if step_count >= steps:
+                    break
     
     except KeyboardInterrupt:
         print("\nSimulation interrupted by user")
@@ -213,12 +222,11 @@ def main():
                        help='Path to trained DQN model (optional)')
     parser.add_argument('--steps', type=int, default=200, 
                        help='Number of simulation steps')
-    parser.add_argument('--delay', type=float, default=0.3, 
-                       help='Delay between steps in seconds')
-    
+    parser.add_argument('--delay', type=float, default=0.5, help='Delay between steps in seconds')
+    parser.add_argument('--no-display', action='store_true', help='Run simulation without displaying the GUI')
     args = parser.parse_args()
-    
-    run_live_simulation(args.config, args.model, args.steps, args.delay)
+
+    run_live_simulation(args.config, args.model, args.steps, args.delay, args.no_display)
 
 
 if __name__ == "__main__":

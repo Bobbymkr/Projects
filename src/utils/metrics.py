@@ -185,7 +185,7 @@ class MetricsRegistry:
             start_http_server(port, addr)
             logger.info(f"Started Prometheus metrics server on port {port}")
         except Exception as e:
-            raise MetricsError(f"Failed to start Prometheus HTTP server: {str(e)}") from e
+            raise MetricsError("Failed to start Prometheus HTTP server.") from e
     
     def push_to_gateway(self, gateway: str, job: str, registry=None, grouping_key: Optional[Dict[str, str]] = None) -> None:
         """Push metrics to a Prometheus Pushgateway.
@@ -206,7 +206,7 @@ class MetricsRegistry:
             push_to_gateway(gateway, job, registry, grouping_key)
             logger.debug(f"Pushed metrics to Pushgateway {gateway} for job {job}")
         except Exception as e:
-            logger.warning(f"Failed to push metrics to Pushgateway: {str(e)}")
+            logger.warning("Failed to push metrics to Pushgateway.")
 
 
 class DummyMetric:

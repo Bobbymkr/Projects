@@ -150,8 +150,8 @@ class MarlEnv(gym.Env):
             neighbor_state.extend(self._get_base_state(neighbor))
         try:
             prediction = self.forecaster[tl_id].predict(hist_array).flatten()
-        except Exception as e:
-            print(f"Prediction error for {tl_id}: {e}")
+        except Exception:
+            print(f"Prediction error for {tl_id}.")
             prediction = np.zeros(self.forecast_steps * len(current))
         return np.concatenate([current, neighbor_state, prediction])
 

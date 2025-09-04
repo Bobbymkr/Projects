@@ -161,7 +161,7 @@ class YOLOQueueEstimator:
             logger.error("ultralytics package not installed. Install with: pip install ultralytics")
             return None
         except Exception as e:
-            logger.error(f"Failed to load YOLO model: {e}")
+            logger.error("Failed to load YOLO model due to an internal error.")
             return None
 
     def estimate_queues(self, frame: np.ndarray) -> List[int]:
@@ -201,7 +201,7 @@ class YOLOQueueEstimator:
             return queue_lengths
             
         except Exception as e:
-            logger.error(f"Error in queue estimation: {e}")
+            logger.error("Error in queue estimation due to an internal error.")
             return [0] * len(self.rois)
 
     def _detect_vehicles(self, frame: np.ndarray) -> List[Dict[str, Any]]:
@@ -240,7 +240,7 @@ class YOLOQueueEstimator:
             return detections
             
         except Exception as e:
-            logger.error(f"Detection error: {e}")
+            logger.error("Detection error due to an internal error.")
             return []
 
     def _update_trackers(self, detections: List[Dict[str, Any]]):

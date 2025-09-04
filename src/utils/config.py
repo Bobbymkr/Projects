@@ -68,8 +68,8 @@ def load_config(config_path: Union[str, Path]) -> Dict[str, Any]:
                 return yaml.safe_load(f)
         else:
             raise ConfigError(f"Unsupported configuration file format: {suffix}")
-    except Exception as e:
-        raise ConfigError(f"Failed to load configuration from {config_path}: {str(e)}") from e
+    except Exception:
+        raise ConfigError(f"Failed to load configuration from {config_path}.")
 
 
 def merge_configs(base_config: Dict[str, Any], override_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -173,8 +173,8 @@ def load_hydra_config(config_path: str, config_name: str) -> Any:
         return cfg
     except ImportError:
         raise ConfigError("Hydra is required to load Hydra configurations")
-    except Exception as e:
-        raise ConfigError(f"Failed to load Hydra configuration: {str(e)}") from e
+    except Exception:
+        raise ConfigError("Failed to load Hydra configuration.")
 
 
 def get_nested_config_value(config: Dict[str, Any], key_path: str, default: Any = None) -> Any:
@@ -252,8 +252,8 @@ def save_config(config: Dict[str, Any], config_path: Union[str, Path]) -> None:
                 yaml.dump(config, f, default_flow_style=False)
         else:
             raise ConfigError(f"Unsupported configuration file format: {suffix}")
-    except Exception as e:
-        raise ConfigError(f"Failed to save configuration to {config_path}: {str(e)}") from e
+    except Exception:
+        raise ConfigError(f"Failed to save configuration to {config_path}.")
 
 
 def load_environment_config(prefix: str = "APP_") -> Dict[str, Any]:
@@ -340,8 +340,8 @@ def create_config_from_template(template_path: Union[str, Path],
         # Write the output
         with open(output_path, 'w') as f:
             f.write(output_content)
-    except Exception as e:
-        raise ConfigError(f"Failed to create configuration from template: {str(e)}") from e
+    except Exception:
+        raise ConfigError("Failed to create configuration from template.")
 
 
 def register_hydra_config_schemas(config_schemas: Dict[str, Any]) -> None:
@@ -367,8 +367,8 @@ def register_hydra_config_schemas(config_schemas: Dict[str, Any]) -> None:
             cs.store(name=name, node=schema)
     except ImportError:
         raise ConfigError("Hydra is required to register config schemas")
-    except Exception as e:
-        raise ConfigError(f"Failed to register Hydra config schemas: {str(e)}") from e
+    except Exception:
+        raise ConfigError("Failed to register Hydra config schemas.")
 
 
 def create_default_configs(config_dir: Union[str, Path], config_templates: Dict[str, Dict[str, Any]]) -> None:
@@ -396,8 +396,8 @@ def create_default_configs(config_dir: Union[str, Path], config_templates: Dict[
         try:
             save_config(config, file_path)
             logger.info(f"Created default configuration file: {file_path}")
-        except Exception as e:
-            logger.error(f"Failed to create default configuration file {file_path}: {str(e)}")
+        except Exception:
+            logger.error(f"Failed to create default configuration file {file_path}.")
 
 
 def validate_config_with_function(config: Dict[str, Any], 
@@ -466,5 +466,5 @@ def get_config_schema(schema_class: Any) -> Dict[str, Any]:
     
     try:
         return schema_class.schema()
-    except Exception as e:
-        raise ConfigError(f"Failed to get config schema: {str(e)}") from e
+    except Exception:
+        raise ConfigError("Failed to get config schema.")
