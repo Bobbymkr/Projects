@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from src.rl.traffic_forecast import TrafficForecaster
+from src.forecast.traffic_forecast import TrafficForecaster
 
 @pytest.fixture
 def forecaster():

@@ -217,15 +217,14 @@ class TrafficEnv(gym.Env):
         agent = None
         if use_agent:
             agent = DQNAgent(
-                state_dim=self.observation_space.shape[0],
-                action_dim=self.action_space.n,
-                cfg=DQNConfig()
+                state_size=self.observation_space.shape[0],
+                action_size=self.action_space.n
             )
             # For demo, we'll use a fresh agent; in practice, load a trained model
         print(f"Initial: time={self.time}, phase={self.phase_index}, queues={obs.tolist()}")
         for step in range(num_steps):
             if agent:
-                action = agent.select_action(obs.astype(np.float32))
+                action = agent.get_action(obs.astype(np.float32).reshape(1, -1))
             else:
                 action = np.random.randint(0, self.action_space.n)  # Random action for demo
             obs, reward, _, _, info = self.step(action)

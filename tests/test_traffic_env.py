@@ -108,8 +108,8 @@ class TestTrafficEnvInitialization:
         """Test observation space configuration."""
         assert traffic_env.observation_space.shape == (4,)
         assert traffic_env.observation_space.dtype == np.float32
-        assert traffic_env.observation_space.low == 0.0
-        assert traffic_env.observation_space.high == 1.0
+        assert np.all(traffic_env.observation_space.low == 0.0)
+        assert np.all(traffic_env.observation_space.high == 1.0)
 
 
 class TestTrafficEnvReset:

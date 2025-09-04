@@ -1,0 +1,13 @@
+{
+  "used_requests": 8,
+  "start_time": "2025-09-04T09:44:41.383978",
+  "last_reset": "2025-09-04T09:44:41.383998",
+  "config": {
+    "total_requests": 150,
+    "warning_threshold": 10,
+    "reset_interval_hours": 24,
+    "storage_file": "quota_state.json",
+    "enable_alerts": true,
+    "alert_sound": true
+  }
+}

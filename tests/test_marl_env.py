@@ -1,6 +1,6 @@
 import pytest
 import traci
-from src.rl.marl_env import MARLEnvironment
+from src.env.marl_env import MarlEnv as MARLEnvironment
 
 @pytest.fixture
 def sumo_env():
