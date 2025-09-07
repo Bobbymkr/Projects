@@ -1,0 +1,512 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop, stabilization ]
+  pull_request:
+    branches: [ main, develop, stabilization ]
+  workflow_dispatch:
+    inputs:
+      run_performance:
+        description: 'Run performance benchmarks'
+        required: false
+        default: false
+        type: boolean
+      run_system_tests:
+        description: 'Run system tests with SUMO'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # Nightly builds at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_DEFAULT: '3.10'
+  CACHE_SUFFIX: v1
+
+jobs:
+  # ============================================================================
+  # CODE QUALITY AND LINTING
+  # ============================================================================
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-lint-${{ env.CACHE_SUFFIX }}-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-lint-${{ env.CACHE_SUFFIX }}-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements-dev.txt
+        
+    - name: Run code formatting check (Black)
+      run: black --check --diff .
+      
+    - name: Run linting (Ruff)
+      run: ruff check .
+      
+    - name: Run type checking (MyPy)
+      run: mypy src/ --ignore-missing-imports
+
+  # ============================================================================
+  # UNIT TESTS
+  # ============================================================================
+  unit-tests:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11']
+        exclude:
+          # Reduce matrix size - only test edge Python versions on Ubuntu
+          - os: windows-latest
+            python-version: '3.9'
+          - os: windows-latest
+            python-version: '3.11'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          ~\AppData\Local\pip\Cache
+        key: ${{ runner.os }}-py${{ matrix.python-version }}-pip-unit-${{ env.CACHE_SUFFIX }}-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-py${{ matrix.python-version }}-pip-unit-${{ env.CACHE_SUFFIX }}-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements-dev.txt
+        
+    - name: Run unit tests with coverage
+      run: |
+        python -m pytest tests/unit/ tests/test_*.py -v \
+          --cov=src \
+          --cov-report=xml \
+          --cov-report=html \
+          --cov-report=term-missing \
+          --junitxml=junit/test-results-unit.xml \
+          --html=reports/pytest-unit.html \
+          --self-contained-html \
+          -m "unit and not slow"
+          
+    - name: Upload unit test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: unit-test-results-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: |
+          junit/test-results-unit.xml
+          reports/pytest-unit.html
+          htmlcov/
+          .coverage
+          
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == env.PYTHON_DEFAULT
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unit
+        name: unit-tests
+        fail_ci_if_error: false
+
+  # ============================================================================
+  # INTEGRATION TESTS (WITHOUT SUMO)
+  # ============================================================================
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [lint-and-typecheck]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-integration-${{ env.CACHE_SUFFIX }}-${{ hashFiles('requirements*.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-integration-${{ env.CACHE_SUFFIX }}-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements-dev.txt
+        
+    - name: Run integration tests
+      run: |
+        python -m pytest tests/integration/ -v \
+          --cov=src \
+          --cov-append \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --junitxml=junit/test-results-integration.xml \
+          --html=reports/pytest-integration.html \
+          --self-contained-html \
+          -m "integration and not sumo and not slow"
+          
+    - name: Upload integration test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: |
+          junit/test-results-integration.xml
+          reports/pytest-integration.html
+          coverage.xml
+
+  # ============================================================================
+  # SUMO INTEGRATION TESTS
+  # ============================================================================
+  sumo-integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [unit-tests]
+    # Run on nightly schedule, manual dispatch, or if SUMO tests explicitly needed
+    if: github.event_name == 'schedule' || github.event.inputs.run_system_tests == 'true' || contains(github.event.head_commit.message, '[sumo]')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT }}
+        
+    - name: Cache SUMO installation
+      uses: actions/cache@v3
+      with:
+        path: |
+          /opt/sumo
+          ~/.cache/pip
+        key: ${{ runner.os }}-sumo-1.18.0-${{ env.CACHE_SUFFIX }}
+        
+    - name: Install SUMO
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake python3-dev g++ libxerces-c-dev libfox-1.6-dev libgdal-dev libproj-dev libgl2ps-dev
+        
+        # Install SUMO from repository (faster than building from source)
+        sudo add-apt-repository ppa:sumo/stable
+        sudo apt-get update
+        sudo apt-get install -y sumo sumo-tools sumo-doc
+        
+        # Verify installation
+        sumo --version
+        echo "SUMO_HOME=/usr/share/sumo" >> $GITHUB_ENV
+        
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements-dev.txt
+        
+    - name: Run SUMO integration tests
+      env:
+        SUMO_HOME: /usr/share/sumo
+        DISPLAY: ":99.0"
+      run: |
+        # Start virtual display for headless SUMO GUI tests
+        sudo apt-get install -y xvfb
+        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        
+        python -m pytest tests/integration/ tests/system/ -v \
+          --cov=src \
+          --cov-append \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --junitxml=junit/test-results-sumo.xml \
+          --html=reports/pytest-sumo.html \
+          --self-contained-html \
+          -m "sumo" \
+          --timeout=300
+          
+    - name: Upload SUMO test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: sumo-test-results
+        path: |
+          junit/test-results-sumo.xml
+          reports/pytest-sumo.html
+          coverage.xml
+
+  # ============================================================================
+  # PERFORMANCE BENCHMARKS
+  # ============================================================================
+  performance-benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    needs: [unit-tests]
+    # Run on nightly builds, manual dispatch, or performance-related commits
+    if: github.event_name == 'schedule' || github.event.inputs.run_performance == 'true' || contains(github.event.head_commit.message, '[perf]')
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-perf-${{ env.CACHE_SUFFIX }}-${{ hashFiles('requirements*.txt') }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements-dev.txt
+        pip install pytest-benchmark
+        
+    - name: Run performance benchmarks
+      run: |
+        python -m pytest tests/performance/ tests/ -v \
+          --benchmark-only \
+          --benchmark-json=benchmarks/benchmark-results.json \
+          --benchmark-html=benchmarks/benchmark-results.html \
+          --junitxml=junit/test-results-perf.xml \
+          -m "perf"
+          
+    - name: Store benchmark baseline
+      uses: benchmark-action/github-action-benchmark@v1
+      with:
+        name: Python Benchmark
+        tool: 'pytest'
+        output-file-path: benchmarks/benchmark-results.json
+        # Store results in gh-pages branch for historical tracking
+        gh-pages-branch: gh-pages
+        benchmark-data-dir-path: benchmarks
+        auto-push: ${{ github.event_name == 'schedule' }}
+        comment-on-alert: true
+        alert-threshold: '105%'  # 5% regression threshold
+        fail-on-alert: false
+        
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-benchmark-results
+        path: |
+          benchmarks/
+          junit/test-results-perf.xml
+
+  # ============================================================================
+  # SYSTEM TESTS
+  # ============================================================================
+  system-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    needs: [integration-tests, sumo-integration-tests]
+    # Run on nightly builds, manual dispatch, or system test commits
+    if: always() && (github.event_name == 'schedule' || github.event.inputs.run_system_tests == 'true' || contains(github.event.head_commit.message, '[system]'))
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT }}
+        
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          /opt/sumo
+          ~/.cache/pip
+        key: ${{ runner.os }}-system-${{ env.CACHE_SUFFIX }}-${{ hashFiles('requirements*.txt') }}
+        
+    - name: Install SUMO
+      run: |
+        sudo add-apt-repository ppa:sumo/stable
+        sudo apt-get update
+        sudo apt-get install -y sumo sumo-tools
+        echo "SUMO_HOME=/usr/share/sumo" >> $GITHUB_ENV
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements-dev.txt
+        
+    - name: Run system tests
+      env:
+        SUMO_HOME: /usr/share/sumo
+      run: |
+        python -m pytest tests/system/ -v \
+          --cov=src \
+          --cov-append \
+          --cov-report=xml \
+          --cov-report=term-missing \
+          --junitxml=junit/test-results-system.xml \
+          --html=reports/pytest-system.html \
+          --self-contained-html \
+          -m "system" \
+          --timeout=600
+          
+    - name: Generate system test report
+      if: always()
+      run: |
+        python scripts/generate_system_report.py --input junit/test-results-system.xml --output reports/system-kpi-report.md
+        
+    - name: Upload system test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: system-test-results
+        path: |
+          junit/test-results-system.xml
+          reports/
+          coverage.xml
+
+  # ============================================================================
+  # COVERAGE CONSOLIDATION AND QUALITY GATES
+  # ============================================================================
+  coverage-and-quality-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [unit-tests, integration-tests]
+    if: always()
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_DEFAULT }}
+        
+    - name: Install coverage tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install coverage[toml] pytest-cov
+        
+    - name: Download coverage artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: coverage-artifacts/
+        
+    - name: Consolidate coverage reports
+      run: |
+        # Combine coverage from different jobs
+        find coverage-artifacts/ -name ".coverage*" -exec cp {} . \;
+        coverage combine
+        coverage report --show-missing
+        coverage html
+        coverage xml
+        
+    - name: Check coverage thresholds
+      run: |
+        # Overall coverage: 85% minimum
+        coverage report --fail-under=85
+        
+        # Core logic coverage: 90% minimum  
+        coverage report --include="src/rl/*,src/env/*,src/sumo_integration/*" --fail-under=90
+        
+    - name: Upload consolidated coverage
+      uses: actions/upload-artifact@v3
+      with:
+        name: consolidated-coverage
+        path: |
+          htmlcov/
+          coverage.xml
+          
+    - name: Upload final coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: consolidated
+        name: consolidated-coverage
+        fail_ci_if_error: true
+
+  # ============================================================================
+  # FINAL REPORTING AND STATUS
+  # ============================================================================
+  final-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint-and-typecheck, unit-tests, integration-tests, coverage-and-quality-gates]
+    if: always()
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: all-artifacts/
+        
+    - name: Generate CI summary report
+      run: |
+        python scripts/generate_ci_summary.py --artifacts-dir all-artifacts/ --output ci-summary.md
+        cat ci-summary.md >> $GITHUB_STEP_SUMMARY
+        
+    - name: Check overall CI status
+      run: |
+        echo "CI Results Summary:" >> $GITHUB_STEP_SUMMARY
+        echo "===================" >> $GITHUB_STEP_SUMMARY
+        echo "- Linting: ${{ needs.lint-and-typecheck.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY  
+        echo "- Integration Tests: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Coverage Gates: ${{ needs.coverage-and-quality-gates.result }}" >> $GITHUB_STEP_SUMMARY
+        
+        if [[ "${{ needs.lint-and-typecheck.result }}" == "success" ]] && \
+           [[ "${{ needs.unit-tests.result }}" == "success" ]] && \
+           [[ "${{ needs.integration-tests.result }}" == "success" ]] && \
+           [[ "${{ needs.coverage-and-quality-gates.result }}" == "success" ]]; then
+          echo "✅ All required checks passed!" >> $GITHUB_STEP_SUMMARY
+          exit 0
+        else
+          echo "❌ Some required checks failed!" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+        
+    - name: Publish final artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: ci-final-report
+        path: |
+          ci-summary.md
+          all-artifacts/
