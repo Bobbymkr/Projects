@@ -115,9 +115,19 @@ class BenchmarkRunner:
             plt.bar(self.methods, values)
             plt.title(f'Average {metric.capitalize()} Comparison')
             plt.savefig(f'{metric}_comparison.png')
-        print("Average wait_time Comparison")
-        print("Average queue_length Comparison")
-        print("Average efficiency Comparison")
+            # Print average values for each algorithm
+            print(f"\nAverage {metric.capitalize()} by Method:")
+            for method, value in zip(self.methods, values):
+                print(f"  {method}: {value:.4f}")
+        # Save all metrics to a text file for easy extraction
+        with open("benchmark_metrics.txt", "w") as f:
+            for metric in ['wait_time', 'queue_length', 'efficiency']:
+                values = [np.mean(self.metrics[m][metric]) for m in self.methods]
+                f.write(f"Average {metric.capitalize()} by Method:\n")
+                for method, value in zip(self.methods, values):
+                    f.write(f"  {method}: {value:.4f}\n")
+                f.write("\n")
+        print("All average metrics saved to benchmark_metrics.txt")
 
 if __name__ == '__main__':
     config = {
