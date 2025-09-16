@@ -1,0 +1,304 @@
+digraph AdaptiveTrafficWorkflow {
+    // Graph configuration
+    rankdir=TB;
+    bgcolor="white";
+    fontname="Helvetica";
+    fontsize=16;
+    label="Adaptive Traffic Signal Control System - Workflow";
+    labelloc="t";
+    
+    // Default node and edge styling
+    node [fontname="Helvetica", fontsize=11, shape=box, style="filled,rounded"];
+    edge [fontname="Helvetica", fontsize=9, color="#333333"];
+    
+    // ===========================================
+    // 1. DATA INGESTION LAYER
+    // ===========================================
+    subgraph cluster_data_ingestion {
+        label="1. DATA INGESTION LAYER";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#4A90E2";
+        style="filled,rounded";
+        fillcolor="#E8F4FD";
+        
+        // Input sources
+        video_feeds [label="Video Camera\nFeeds", fillcolor="#7ED321", color="#5BA817"];
+        traffic_sensors [label="Traffic Sensor\nData", fillcolor="#7ED321", color="#5BA817"];
+        config_files [label="System\nConfiguration", fillcolor="#7ED321", color="#5BA817"];
+        sumo_data [label="SUMO Simulation\nData", fillcolor="#7ED321", color="#5BA817"];
+    }
+    
+    // ===========================================
+    // 2. VISION PROCESSING PIPELINE
+    // ===========================================
+    subgraph cluster_vision_processing {
+        label="2. VISION PROCESSING PIPELINE";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#F5A623";
+        style="filled,rounded";
+        fillcolor="#FEF7E6";
+        
+        yolo_detection [label="YOLOv8 Vehicle\nDetection", fillcolor="#F8E71C", color="#D4C417"];
+        roi_analysis [label="ROI Lane\nMonitoring", fillcolor="#F8E71C", color="#D4C417"];
+        queue_estimation [label="Queue Length\nEstimation", fillcolor="#F8E71C", color="#D4C417"];
+        vehicle_tracking [label="Multi-Object\nTracking", fillcolor="#F8E71C", color="#D4C417"];
+        
+        // Vision pipeline flow
+        yolo_detection -> vehicle_tracking;
+        vehicle_tracking -> roi_analysis;
+        roi_analysis -> queue_estimation;
+    }
+    
+    // ===========================================
+    // 3. ENVIRONMENT SIMULATION LAYER
+    // ===========================================
+    subgraph cluster_environment {
+        label="3. ENVIRONMENT SIMULATION LAYER";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#50E3C2";
+        style="filled,rounded";
+        fillcolor="#E6FAF7";
+        
+        traffic_env [label="Traffic Environment\n(Gymnasium)", fillcolor="#9013FE", color="#7B1FA2", fontcolor="white"];
+        sumo_env [label="SUMO Integration\nEnvironment", fillcolor="#9013FE", color="#7B1FA2", fontcolor="white"];
+        marl_env [label="Multi-Agent RL\nEnvironment", fillcolor="#9013FE", color="#7B1FA2", fontcolor="white"];
+        video_env [label="Vision-Based\nEnvironment", fillcolor="#9013FE", color="#7B1FA2", fontcolor="white"];
+    }
+    
+    // ===========================================
+    // 4. AI/ML PROCESSING ENGINE
+    // ===========================================
+    subgraph cluster_ai_processing {
+        label="4. AI/ML PROCESSING ENGINE";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#D0021B";
+        style="filled,rounded";
+        fillcolor="#FDF2F2";
+        
+        // Forecasting Module
+        subgraph cluster_forecasting {
+            label="Traffic Forecasting";
+            fontsize=12;
+            fontcolor="#8B0000";
+            color="#FF6B6B";
+            style="dashed";
+            
+            lstm_model [label="LSTM Neural\nNetwork", fillcolor="#FF6B6B", color="#E74C3C", fontcolor="white"];
+            cnn_lstm [label="CNN-LSTM\nHybrid Model", fillcolor="#FF6B6B", color="#E74C3C", fontcolor="white"];
+            gnn_forecast [label="Graph Neural\nNetwork", fillcolor="#FF6B6B", color="#E74C3C", fontcolor="white"];
+        }
+        
+        // Reinforcement Learning Module
+        subgraph cluster_rl {
+            label="Reinforcement Learning";
+            fontsize=12;
+            fontcolor="#8B0000";
+            color="#FF6B6B";
+            style="dashed";
+            
+            dqn_agent [label="DQN Agent\nTraining", fillcolor="#E74C3C", color="#C0392B", fontcolor="white"];
+            marl_coordination [label="Multi-Agent\nCoordination", fillcolor="#E74C3C", color="#C0392B", fontcolor="white"];
+            experience_replay [label="Experience\nReplay Buffer", fillcolor="#E74C3C", color="#C0392B", fontcolor="white"];
+        }
+    }
+    
+    // ===========================================
+    // 5. CONTROL STRATEGY LAYER
+    // ===========================================
+    subgraph cluster_control_strategies {
+        label="5. CONTROL STRATEGY LAYER";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#BD10E0";
+        style="filled,rounded";
+        fillcolor="#F8F0FF";
+        
+        strategy_selector [label="Strategy Pattern\nSelector", fillcolor="#BD10E0", color="#9C27B0", fontcolor="white"];
+        
+        // Alternative control methods
+        fuzzy_controller [label="Fuzzy Logic\nControl", fillcolor="#D946EF", color="#AB47BC"];
+        webster_method [label="Webster's Method\n(Classical)", fillcolor="#D946EF", color="#AB47BC"];
+        fixed_timing [label="Fixed Timing\n(Baseline)", fillcolor="#D946EF", color="#AB47BC"];
+    }
+    
+    // ===========================================
+    // 6. OPTIMIZATION ENGINE
+    // ===========================================
+    subgraph cluster_optimization {
+        label="6. OPTIMIZATION ENGINE";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#F5A623";
+        style="filled,rounded";
+        fillcolor="#FFF9E6";
+        
+        optuna_tuning [label="Hyperparameter\nTuning (Optuna)", fillcolor="#FF9500", color="#E68900", fontcolor="white"];
+        genetic_algo [label="Genetic Algorithm\nOptimization", fillcolor="#FF9500", color="#E68900", fontcolor="white"];
+        pso_optimizer [label="Particle Swarm\nOptimization", fillcolor="#FF9500", color="#E68900", fontcolor="white"];
+    }
+    
+    // ===========================================
+    // 7. SIGNAL CONTROL EXECUTION
+    // ===========================================
+    subgraph cluster_execution {
+        label="7. SIGNAL CONTROL EXECUTION";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#417505";
+        style="filled,rounded";
+        fillcolor="#F0F8E8";
+        
+        signal_controller [label="Traffic Signal\nController", fillcolor="#8CC152", color="#7CB342", fontcolor="white"];
+        timing_calculator [label="Optimal Timing\nCalculator", fillcolor="#8CC152", color="#7CB342", fontcolor="white"];
+        phase_manager [label="Signal Phase\nManager", fillcolor="#8CC152", color="#7CB342", fontcolor="white"];
+    }
+    
+    // ===========================================
+    // 8. MONITORING & ANALYTICS
+    // ===========================================
+    subgraph cluster_monitoring {
+        label="8. MONITORING & ANALYTICS";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#4A90E2";
+        style="filled,rounded";
+        fillcolor="#E8F4FD";
+        
+        performance_monitor [label="Performance\nMonitoring", fillcolor="#4A90E2", color="#2196F3", fontcolor="white"];
+        health_checker [label="System Health\nChecker", fillcolor="#4A90E2", color="#2196F3", fontcolor="white"];
+        request_tracker [label="Request Quota\nTracker", fillcolor="#4A90E2", color="#2196F3", fontcolor="white"];
+        tensorboard [label="TensorBoard\nVisualization", fillcolor="#4A90E2", color="#2196F3", fontcolor="white"];
+    }
+    
+    // ===========================================
+    // 9. OUTPUT & RESULTS
+    // ===========================================
+    subgraph cluster_outputs {
+        label="9. OUTPUT & RESULTS";
+        labeljust="l";
+        fontsize=14;
+        fontcolor="#2E4057";
+        color="#50E3C2";
+        style="filled,rounded";
+        fillcolor="#E6FAF7";
+        
+        signal_timing [label="Optimized Signal\nTiming Commands", fillcolor="#50E3C2", color="#00BCD4", fontcolor="white"];
+        traffic_predictions [label="Traffic Flow\nPredictions", fillcolor="#50E3C2", color="#00BCD4", fontcolor="white"];
+        performance_metrics [label="Performance\nMetrics & KPIs", fillcolor="#50E3C2", color="#00BCD4", fontcolor="white"];
+        model_artifacts [label="Trained Models\n& Checkpoints", fillcolor="#50E3C2", color="#00BCD4", fontcolor="white"];
+        visualizations [label="Reports &\nVisualizations", fillcolor="#50E3C2", color="#00BCD4", fontcolor="white"];
+    }
+    
+    // ===========================================
+    // MAIN WORKFLOW CONNECTIONS
+    // ===========================================
+    
+    // 1. Data Ingestion → Vision Processing
+    video_feeds -> yolo_detection [color="#4A90E2", penwidth=2];
+    video_feeds -> roi_analysis [color="#4A90E2"];
+    
+    // 2. Vision Processing → Environment
+    queue_estimation -> video_env [color="#F5A623", penwidth=2];
+    
+    // 3. Data Sources → Environment
+    traffic_sensors -> traffic_env [color="#4A90E2"];
+    config_files -> traffic_env [color="#4A90E2"];
+    sumo_data -> sumo_env [color="#4A90E2"];
+    
+    // 4. Environment → AI Processing
+    traffic_env -> dqn_agent [color="#50E3C2", penwidth=2];
+    sumo_env -> dqn_agent [color="#50E3C2"];
+    marl_env -> marl_coordination [color="#50E3C2", penwidth=2];
+    video_env -> dqn_agent [color="#50E3C2"];
+    
+    // 5. AI Processing Internal Flow
+    dqn_agent -> experience_replay [color="#D0021B"];
+    experience_replay -> dqn_agent [color="#D0021B"];
+    lstm_model -> cnn_lstm [color="#D0021B"];
+    traffic_sensors -> lstm_model [color="#4A90E2"];
+    
+    // 6. AI Processing → Control Strategy
+    dqn_agent -> strategy_selector [color="#D0021B", penwidth=2];
+    marl_coordination -> strategy_selector [color="#D0021B"];
+    fuzzy_controller -> strategy_selector [color="#BD10E0"];
+    webster_method -> strategy_selector [color="#BD10E0"];
+    fixed_timing -> strategy_selector [color="#BD10E0"];
+    
+    // 7. Optimization Flow
+    dqn_agent -> optuna_tuning [color="#F5A623"];
+    optuna_tuning -> genetic_algo [color="#F5A623"];
+    optuna_tuning -> pso_optimizer [color="#F5A623"];
+    genetic_algo -> dqn_agent [color="#F5A623", style="dashed", label="optimized params"];
+    pso_optimizer -> dqn_agent [color="#F5A623", style="dashed"];
+    
+    // 8. Control Strategy → Execution
+    strategy_selector -> signal_controller [color="#BD10E0", penwidth=2];
+    signal_controller -> timing_calculator [color="#417505"];
+    timing_calculator -> phase_manager [color="#417505"];
+    
+    // 9. Execution → Outputs
+    phase_manager -> signal_timing [color="#417505", penwidth=2];
+    lstm_model -> traffic_predictions [color="#D0021B"];
+    cnn_lstm -> traffic_predictions [color="#D0021B"];
+    
+    // 10. Monitoring Connections
+    dqn_agent -> tensorboard [color="#4A90E2"];
+    signal_controller -> performance_monitor [color="#4A90E2"];
+    performance_monitor -> health_checker [color="#4A90E2"];
+    signal_controller -> request_tracker [color="#4A90E2"];
+    
+    // 11. Monitoring → Outputs
+    performance_monitor -> performance_metrics [color="#4A90E2"];
+    tensorboard -> visualizations [color="#4A90E2"];
+    dqn_agent -> model_artifacts [color="#D0021B"];
+    marl_coordination -> model_artifacts [color="#D0021B"];
+    
+    // ===========================================
+    // FEEDBACK LOOPS
+    // ===========================================
+    
+    // Performance feedback to optimization
+    performance_metrics -> optuna_tuning [color="#FF6B35", style="dashed", penwidth=2, label="feedback"];
+    
+    // Environment feedback
+    signal_timing -> traffic_env [color="#FF6B35", style="dashed", label="state update"];
+    signal_timing -> sumo_env [color="#FF6B35", style="dashed"];
+    
+    // Health monitoring feedback
+    health_checker -> strategy_selector [color="#D0021B", style="dashed", label="health status"];
+    
+    // Forecasting feedback
+    traffic_predictions -> dqn_agent [color="#50E3C2", style="dashed", label="predictions"];
+    
+    // ===========================================
+    // LEGEND
+    // ===========================================
+    subgraph cluster_legend {
+        rank="sink";
+        label="LEGEND";
+        fontsize=12;
+        fontcolor="#666666";
+        color="#CCCCCC";
+        style="filled,rounded";
+        fillcolor="#F8F8F8";
+        
+        legend_main_flow [label="Main Data Flow", shape=plaintext, fillcolor="transparent"];
+        legend_feedback [label="Feedback Loop", shape=plaintext, fillcolor="transparent"];
+        legend_optimization [label="Optimization Path", shape=plaintext, fillcolor="transparent"];
+        
+        legend_main_flow -> legend_feedback [color="#4A90E2", penwidth=2, style="solid"];
+        legend_feedback -> legend_optimization [color="#FF6B35", penwidth=2, style="dashed"];
+    }
+}
