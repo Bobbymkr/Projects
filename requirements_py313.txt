@@ -1,0 +1,16 @@
+# Python 3.13 compatible dependencies
+numpy>=2.0.0
+matplotlib>=3.8.0
+opencv-python>=4.10.0
+tqdm>=4.66.0
+# Vision model
+ultralytics>=8.3.0
+# RL dependencies
+gymnasium>=0.29.0
+stable-baselines3>=2.3.0
+# Testing dependencies
+pytest>=8.3.0
+# Hyperparameter tuning
+optuna>=3.6.0
+# For forecasting - using latest compatible version
+tensorflow>=2.20.0

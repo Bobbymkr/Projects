@@ -3,7 +3,6 @@ import types
 from typing import Tuple, Dict, Any
 import gymnasium as gym
 from gymnasium import spaces
-from src.rl.dqn_agent import DQNAgent, DQNConfig
 
 
 class TrafficEnv(gym.Env):
@@ -169,7 +168,7 @@ class TrafficEnv(gym.Env):
         self.phase_index = 1 - self.phase_index
 
         # Update statistics
-        self.max_queue_length = max(self.max_queue_length, np.max(self.queues))
+        self.max_queue_length = max(self.max_queue_length, int(np.max(self.queues)))
 
         obs = self._normalize_observation(self.queues)
         reward = self._compute_reward()
@@ -216,20 +215,24 @@ class TrafficEnv(gym.Env):
         obs, _ = self.reset(seed=seed)
         agent = None
         if use_agent:
-            from src.rl.dqn_agent import DQNConfig
-            cfg = DQNConfig()
-            agent = DQNAgent(
-                state_dim=self.observation_space.shape[0],
-                action_dim=self.action_space.n,
-                cfg=cfg
-            )
-            # For demo, we'll use a fresh agent; in practice, load a trained model
+            try:
+                from src.rl.dqn_agent import DQNAgent, DQNConfig
+                cfg = DQNConfig()
+                agent = DQNAgent(
+                    state_dim=self.observation_space.shape[0],
+                    action_dim=self.action_space.n,
+                    cfg=cfg
+                )
+                # For demo, we'll use a fresh agent; in practice, load a trained model
+            except ImportError:
+                print("Warning: DQN agent not available, using random actions")
+                agent = None
         print(f"Initial: time={self.time}, phase={self.phase_index}, queues={obs.tolist()}")
         for step in range(num_steps):
-            if agent:
-                action = agent.select_action(obs.astype(np.float32))
-            else:
-                action = np.random.randint(0, self.action_space.n)  # Random action for demo
+                if agent:
+                    action = agent.select_action(obs.astype(np.float32))
+                else:
+                    action = np.random.randint(0, self.action_space.n)  # Random action for demo
             obs, reward, _, _, info = self.step(action)
             green_duration = self.green_values[action]
             print(f"Step {step+1}: action={action} (green={green_duration}s), time={info['time']}, "
