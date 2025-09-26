@@ -229,10 +229,10 @@ class TrafficEnv(gym.Env):
                 agent = None
         print(f"Initial: time={self.time}, phase={self.phase_index}, queues={obs.tolist()}")
         for step in range(num_steps):
-                if agent:
-                    action = agent.select_action(obs.astype(np.float32))
-                else:
-                    action = np.random.randint(0, self.action_space.n)  # Random action for demo
+            if agent:
+                action = agent.select_action(obs.astype(np.float32))
+            else:
+                action = np.random.randint(0, self.action_space.n)  # Random action for demo
             obs, reward, _, _, info = self.step(action)
             green_duration = self.green_values[action]
             print(f"Step {step+1}: action={action} (green={green_duration}s), time={info['time']}, "

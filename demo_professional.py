@@ -3,15 +3,13 @@
 Professional Adaptive Traffic Signal Control - Enhanced Demo
 
 This script demonstrates the complete Adaptive Traffic Signal Control system with:
-1. Professional request tracking and quota management
-2. Comprehensive error handling and monitoring
-3. Industry-standard logging and reporting
-4. Multi-agent reinforcement learning capabilities
-5. Advanced traffic forecasting
-6. Professional alerting mechanisms
+1. Comprehensive error handling and monitoring
+2. Industry-standard logging and reporting
+3. Multi-agent reinforcement learning capabilities
+4. Advanced traffic forecasting
+5. Professional alerting mechanisms
 
 Features:
-- Request quota tracking (150 requests with 10-request warning threshold)
 - Professional monitoring and alerting
 - Comprehensive error handling
 - Industry-standard logging
@@ -28,10 +26,6 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-
-# Import the professional request tracking system
-sys.path.append('src')
-from monitoring.request_tracker import RequestTracker, QuotaConfig, get_global_tracker
 
 # Configure professional logging
 logging.basicConfig(
@@ -52,15 +46,6 @@ class ProfessionalAdaptiveTrafficDemo:
         """Initialize the professional demo system."""
         self.args = args
         self.start_time = datetime.now()
-        
-        # Initialize professional request tracking
-        quota_config = QuotaConfig(
-            total_requests=150,
-            warning_threshold=10,
-            alert_sound=True,
-            enable_alerts=True
-        )
-        self.request_tracker = RequestTracker(quota_config)
         
         # Setup directories
         self._setup_directories()
@@ -102,58 +87,56 @@ class ProfessionalAdaptiveTrafficDemo:
             self.use_sumo = False
     
     def run_with_monitoring(self, cmd, description, timeout=600):
-        """Run a command with professional monitoring and request tracking."""
-        with self.request_tracker.request_context(description.replace(" ", "_")):
-            logger.info(f"Starting: {description}")
-            print(f"\\n{'='*80}")
-            print(f"🚀 {description}")
-            print(f"{'='*80}")
-            print(f"Command: {cmd}")
-            print("-" * 80)
+        """Run a command with professional monitoring."""
+        logger.info(f"Starting: {description}")
+        print(f"\n{'='*80}")
+        print(f"🚀 {description}")
+        print(f"{'='*80}")
+        print(f"Command: {cmd}")
+        print("-" * 80)
+        
+        try:
+            start_time = time.time()
+            result = subprocess.run(
+                cmd, 
+                shell=True, 
+                capture_output=True, 
+                text=True, 
+                timeout=timeout,
+                cwd=os.getcwd()
+            )
             
-            try:
-                start_time = time.time()
-                result = subprocess.run(
-                    cmd, 
-                    shell=True, 
-                    capture_output=True, 
-                    text=True, 
-                    timeout=timeout,
-                    cwd=os.getcwd()
-                )
-                
-                duration = time.time() - start_time
-                
-                if result.stdout:
-                    print(result.stdout)
-                if result.stderr:
-                    print("STDERR:", result.stderr)
-                    logger.warning(f"Command stderr: {result.stderr}")
-                
-                if result.returncode != 0:
-                    error_msg = f"Command failed with return code {result.returncode}"
-                    print(f"❌ {error_msg}")
-                    logger.error(error_msg)
-                    return False
-                else:
-                    success_msg = f"✅ Completed successfully in {duration:.2f}s"
-                    print(f"{success_msg}")
-                    logger.info(f"{description} completed in {duration:.2f}s")
-                    return True
-                    
-            except subprocess.TimeoutExpired:
-                error_msg = f"Command timed out after {timeout} seconds"
-                print(f"⏰ {error_msg}")
+            duration = time.time() - start_time
+            
+            if result.stdout:
+                print(result.stdout)
+            if result.stderr:
+                print("STDERR:", result.stderr)
+                logger.warning(f"Command stderr: {result.stderr}")
+            
+            if result.returncode != 0:
+                error_msg = f"Command failed with return code {result.returncode}"
+                print(f"❌ {error_msg}")
                 logger.error(error_msg)
                 return False
-            except Exception as e:
-                error_msg = f"Error running command: {e}"
-                print(f"💥 {error_msg}")
-                logger.error(error_msg)
-                return False
-            finally:
-                print("=" * 80)
-                self.request_tracker.print_status_dashboard()
+            else:
+                success_msg = f"✅ Completed successfully in {duration:.2f}s"
+                print(f"{success_msg}")
+                logger.info(f"{description} completed in {duration:.2f}s")
+                return True
+                
+        except subprocess.TimeoutExpired:
+            error_msg = f"Command timed out after {timeout} seconds"
+            print(f"⏰ {error_msg}")
+            logger.error(error_msg)
+            return False
+        except Exception as e:
+            error_msg = f"Error running command: {e}"
+            print(f"💥 {error_msg}")
+            logger.error(error_msg)
+            return False
+        finally:
+            print("=" * 80)
     
     def run_comprehensive_demo(self):
         """Execute the complete professional demonstration."""
@@ -166,11 +149,7 @@ class ProfessionalAdaptiveTrafficDemo:
             print("• LSTM traffic forecasting")
             print("• YOLOv8 computer vision")
             print("• Professional monitoring and alerting")
-            print("• Request quota management")
             print("=" * 80)
-            
-            # Display initial quota status
-            self.request_tracker.print_status_dashboard()
             
             # Step 1: Environment Validation
             if not self._validate_environment():
@@ -290,40 +269,38 @@ class ProfessionalAdaptiveTrafficDemo:
     
     def _generate_professional_reports(self):
         """Generate comprehensive professional reports."""
-        with self.request_tracker.request_context("Report_Generation"):
-            logger.info("Generating professional reports")
-            
-            # Create reports directory
-            reports_dir = Path("reports")
-            reports_dir.mkdir(exist_ok=True)
-            
-            # Generate system report
-            system_report = {
-                "demo_execution": {
-                    "start_time": self.start_time.isoformat(),
-                    "end_time": datetime.now().isoformat(),
-                    "duration": str(datetime.now() - self.start_time),
-                    "success": True
-                },
-                "system_info": {
-                    "python_version": sys.version,
-                    "platform": os.name,
-                    "working_directory": os.getcwd(),
-                    "sumo_available": self.sumo_available,
-                    "sumo_used": self.use_sumo
-                },
-                "quota_status": self.request_tracker.get_status_report(),
-                "generated_files": self._get_generated_files()
-            }
-            
-            # Save report
-            report_file = reports_dir / f"demo_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-            with open(report_file, 'w') as f:
-                json.dump(system_report, f, indent=2)
-            
-            logger.info(f"Professional report saved: {report_file}")
-            print(f"📋 Professional report generated: {report_file}")
-    
+        logger.info("Generating professional reports")
+        
+        # Create reports directory
+        reports_dir = Path("reports")
+        reports_dir.mkdir(exist_ok=True)
+        
+        # Generate system report
+        system_report = {
+            "demo_execution": {
+                "start_time": self.start_time.isoformat(),
+                "end_time": datetime.now().isoformat(),
+                "duration": str(datetime.now() - self.start_time),
+                "success": True
+            },
+            "system_info": {
+                "python_version": sys.version,
+                "platform": os.name,
+                "working_directory": os.getcwd(),
+                "sumo_available": self.sumo_available,
+                "sumo_used": self.use_sumo
+            },
+            "generated_files": self._get_generated_files()
+        }
+        
+        # Save report
+        report_file = reports_dir / f"demo_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        with open(report_file, 'w') as f:
+            json.dump(system_report, f, indent=2)
+        
+        logger.info(f"Professional report saved: {report_file}")
+        print(f"📋 Professional report generated: {report_file}")
+
     def _get_generated_files(self):
         """Get list of generated files."""
         generated_files = []
@@ -341,30 +318,25 @@ class ProfessionalAdaptiveTrafficDemo:
         """Display final status and summary."""
         duration = datetime.now() - self.start_time
         
-        print("\\n" + "="*80)
+        print("\n" + "="*80)
         print("🎉 PROFESSIONAL DEMO COMPLETED SUCCESSFULLY!")
         print("="*80)
         print(f"⏱️  Total Duration: {duration}")
         print(f"🚀 All Systems: OPERATIONAL")
         print(f"📊 Components Tested: DQN, MARL, LSTM, Vision, Optimization")
-        print(f"🔧 Request Tracking: ACTIVE")
         print("="*80)
         
-        # Final quota status
-        self.request_tracker.print_status_dashboard()
-        
         # Display key achievements
-        print("\\n🏆 KEY ACHIEVEMENTS:")
+        print("\n🏆 KEY ACHIEVEMENTS:")
         print("• ✅ Deep Q-Network training completed")
         print("• ✅ Multi-Agent RL system validated") 
         print("• ✅ LSTM forecasting demonstrated")
         print("• ✅ Computer vision pipeline tested")
         print("• ✅ Multiple optimization algorithms verified")
         print("• ✅ Professional monitoring system active")
-        print("• ✅ Request quota management operational")
         print("• ✅ Comprehensive reporting generated")
         
-        print("\\n📁 Generated Artifacts:")
+        print("\n📁 Generated Artifacts:")
         if os.path.exists("runs/dqn_traffic.zip"):
             print("• 🤖 runs/dqn_traffic.zip (trained DQN model)")
         if os.path.exists("runs/queue_timeseries.png"):
@@ -372,30 +344,28 @@ class ProfessionalAdaptiveTrafficDemo:
         if os.path.exists("runs/rewards.npy"):
             print("• 📈 runs/rewards.npy (training metrics)")
         
-        print("\\n🚦 The Professional Adaptive Traffic Control System is ready for production!")
-        
+        print("\n🚦 The Professional Adaptive Traffic Control System is ready for production!")
+
     def _get_python_cmd(self):
         """Get the appropriate Python command."""
         return ".venv\\\\Scripts\\\\python.exe"
     
     def _validate_dependencies(self):
         """Validate all required dependencies."""
-        with self.request_tracker.request_context("Dependency_Validation"):
-            try:
-                import numpy, matplotlib, cv2, gymnasium
-                import stable_baselines3, tensorflow, torch
-                import ultralytics, optuna
-                logger.info("All dependencies validated successfully")
-                return True
-            except ImportError as e:
-                logger.error(f"Missing dependency: {e}")
-                return False
-
+        try:
+            import numpy, matplotlib, cv2, gymnasium
+            import stable_baselines3, tensorflow, torch
+            import ultralytics, optuna
+            logger.info("All dependencies validated successfully")
+            return True
+        except ImportError as e:
+            logger.error(f"Missing dependency: {e}")
+            return False
 
 def main():
     """Main entry point for the professional demo."""
     parser = argparse.ArgumentParser(
-        description="Professional Adaptive Traffic Control Demo with Request Tracking"
+        description="Professional Adaptive Traffic Control Demo"
     )
     parser.add_argument('--force-sumo', action='store_true', 
                        help='Force using SUMO even if not auto-detected')
@@ -413,11 +383,11 @@ def main():
         success = demo.run_comprehensive_demo()
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
-        print("\\n⚠️  Demo interrupted by user")
+        print("\n⚠️  Demo interrupted by user")
         logger.info("Demo interrupted by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\\n💥 Fatal error: {e}")
+        print(f"\n💥 Fatal error: {e}")
         logger.error(f"Fatal error: {e}", exc_info=True)
         sys.exit(1)
 
