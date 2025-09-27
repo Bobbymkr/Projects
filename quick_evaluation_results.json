@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-09-26T19:14:56.387890",
+  "episodes_evaluated": 10,
+  "avg_reward": -1653.4491727819873,
+  "std_reward": 43.99903351387975,
+  "avg_episode_length": 1000.0,
+  "decision_distribution": {
+    "0": 473,
+    "1": 0,
+    "2": 0,
+    "3": 9527
+  },
+  "estimated_accuracy": 67.32754136090064,
+  "performance_grade": "D - Needs Improvement"
+}
