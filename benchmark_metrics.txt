@@ -1,24 +1,24 @@
 Average Wait_time by Method:
-  dqn: 21.4680
-  fuzzy: 8.5094
-  genetic: 21.7103
-  pso: 21.8634
-  gnn: 13.5787
-  webster: 27.3651
+  dqn: 20.8249
+  fuzzy: 8.3189
+  genetic: 22.8998
+  pso: 20.7062
+  gnn: 11.9647
+  webster: 26.6150
 
 Average Queue_length by Method:
-  dqn: 23.4000
-  fuzzy: 12.5000
+  dqn: 23.6000
+  fuzzy: 12.3000
   genetic: 23.2000
-  pso: 22.3000
-  gnn: 15.4000
-  webster: 24.9000
+  pso: 21.8000
+  gnn: 14.5000
+  webster: 23.7000
 
 Average Efficiency by Method:
-  dqn: 1.2064
-  fuzzy: 1.2123
-  genetic: 1.1613
-  pso: 1.1922
-  gnn: 1.1848
-  webster: 1.1612
+  dqn: 1.1752
+  fuzzy: 1.2179
+  genetic: 1.1871
+  pso: 1.1928
+  gnn: 1.2289
+  webster: 1.1494
 
