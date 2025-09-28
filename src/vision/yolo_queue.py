@@ -9,6 +9,10 @@ import time
 import threading
 from pathlib import Path
 
+# Import enhanced model management
+from .model_manager import YOLOModelManager, ModelMetrics
+from .config import YOLOConfig, ModelType
+
 
 # Configure logging for vision module
 logging.basicConfig(level=logging.INFO)
@@ -85,6 +89,7 @@ class YOLOQueueEstimator:
     """
 
     def __init__(self, 
+                 config: Optional[YOLOConfig] = None,
                  model_path: Optional[str] = None, 
                  rois: Optional[List[ROIConfig]] = None,
                  confidence_threshold: float = 0.5,
@@ -93,10 +98,11 @@ class YOLOQueueEstimator:
                  max_missing_frames: int = 10,
                  queue_smoothing_window: int = 5):
         """
-        Initialize YOLO-based queue estimator.
+        Initialize enhanced YOLO-based queue estimator with YOLOv11n support.
         
         Args:
-            model_path: Path to YOLOv8 model file (.pt)
+            config: YOLOConfig object with enhanced model management settings
+            model_path: Legacy parameter for backward compatibility
             rois: List of ROI configurations for each lane
             confidence_threshold: Minimum detection confidence
             nms_threshold: Non-maximum suppression threshold
@@ -104,18 +110,41 @@ class YOLOQueueEstimator:
             max_missing_frames: Maximum frames before dropping a track
             queue_smoothing_window: Frames for temporal smoothing
         """
-        self.model_path = model_path or self._download_default_model()
-        self.rois = rois or []
-        self.confidence_threshold = confidence_threshold
-        self.nms_threshold = nms_threshold
-        self.max_tracking_distance = max_tracking_distance
-        self.max_missing_frames = max_missing_frames
         
-        # Initialize YOLO model
-        self.model = self._load_yolo_model()
+        # Handle configuration - prioritize config object over individual parameters
+        if config is not None:
+            self.config = config
+        else:
+            # Create config from legacy parameters for backward compatibility
+            self.config = YOLOConfig(
+                model_type=ModelType.YOLOV11_NANO,  # Default to YOLOv11n
+                model_path=model_path,
+                confidence_threshold=confidence_threshold,
+                nms_threshold=nms_threshold,
+                max_tracking_distance=max_tracking_distance,
+                max_missing_frames=max_missing_frames,
+                queue_smoothing_window=queue_smoothing_window
+            )
+        
+        # Initialize model manager
+        self.model_manager = YOLOModelManager(self.config)
+        
+        # Initialize models
+        if not self.model_manager.initialize_models():
+            logger.error("Failed to initialize any YOLO models")
+            self.model_manager = None
+        
+        # Legacy compatibility properties
+        self.model_path = self.config.model_path
+        self.confidence_threshold = self.config.confidence_threshold
+        self.nms_threshold = self.config.nms_threshold
+        self.max_tracking_distance = self.config.max_tracking_distance
+        self.max_missing_frames = self.config.max_missing_frames
+        
+        self.rois = rois or []
         
         # Vehicle classes from COCO dataset
-        self.vehicle_classes = {2, 3, 5, 7}  # car, motorcycle, bus, truck
+        self.vehicle_classes = set(self.config.vehicle_classes)
         
         # Tracking system
         self.trackers: Dict[int, VehicleTracker] = {}
@@ -123,50 +152,65 @@ class YOLOQueueEstimator:
         self.tracking_lock = threading.Lock()
         
         # Queue estimation with temporal smoothing
-        self.queue_history = defaultdict(lambda: deque(maxlen=queue_smoothing_window))
+        self.queue_history = defaultdict(lambda: deque(maxlen=self.config.queue_smoothing_window))
         self.last_detection_time = 0
         
-        # Performance monitoring
+        # Performance monitoring (enhanced)
         self.fps_counter = deque(maxlen=30)
         self.detection_stats = {"total_detections": 0, "vehicles_detected": 0}
+        self.shadow_detection_stats = {"total_detections": 0, "vehicles_detected": 0}
         
-        logger.info(f"YOLOQueueEstimator initialized with {len(self.rois)} ROIs")
+        # A/B testing state
+        self.shadow_mode_active = self.config.enable_shadow_mode
+        self.shadow_comparison_results = []
+        
+        logger.info(f"Enhanced YOLOQueueEstimator initialized with {len(self.rois)} ROIs")
+        logger.info(f"Model configuration: {self.config.model_type.value}")
+        logger.info(f"Shadow mode: {self.shadow_mode_active}")
+        logger.info(f"Fallback chain: {[mt.value for mt in self.config.fallback_chain]}")
 
-    def _download_default_model(self) -> str:
-        """Download YOLOv8n model if not provided."""
-        try:
-            from ultralytics import YOLO
-            model_path = "yolov8n.pt"
-            # This will auto-download if not present
-            YOLO(model_path)
-            return model_path
-        except ImportError:
-            logger.warning("ultralytics not installed, using OpenCV DNN fallback")
-            return None
-
-    def _load_yolo_model(self):
-        """Load YOLO model with error handling."""
-        try:
-            from ultralytics import YOLO
-            if self.model_path and Path(self.model_path).exists():
-                model = YOLO(self.model_path)
-                logger.info(f"Loaded YOLO model from {self.model_path}")
-                return model
-            else:
-                # Fallback to YOLOv8n
-                model = YOLO("yolov8n.pt")
-                logger.info("Using YOLOv8n model")
-                return model
-        except ImportError:
-            logger.error("ultralytics package not installed. Install with: pip install ultralytics")
-            return None
-        except Exception as e:
-            logger.error("Failed to load YOLO model due to an internal error.")
-            return None
+    def _compare_shadow_results(self, primary_detections: List[Dict], shadow_detections: List[Dict], 
+                              primary_metrics: ModelMetrics, shadow_metrics: ModelMetrics):
+        """Compare primary and shadow model results for A/B testing."""
+        comparison = {
+            "timestamp": time.time(),
+            "primary_count": len(primary_detections),
+            "shadow_count": len(shadow_detections),
+            "primary_fps": primary_metrics.fps if primary_metrics else 0.0,
+            "shadow_fps": shadow_metrics.fps if shadow_metrics else 0.0,
+            "primary_inference_ms": primary_metrics.inference_time_ms if primary_metrics else 0.0,
+            "shadow_inference_ms": shadow_metrics.inference_time_ms if shadow_metrics else 0.0,
+            "detection_difference": abs(len(primary_detections) - len(shadow_detections)),
+            "confidence_correlation": self._calculate_confidence_correlation(primary_detections, shadow_detections)
+        }
+        
+        self.shadow_comparison_results.append(comparison)
+        
+        # Keep only recent comparisons (last 100)
+        if len(self.shadow_comparison_results) > 100:
+            self.shadow_comparison_results = self.shadow_comparison_results[-100:]
+        
+        # Log significant differences
+        if comparison["detection_difference"] > 5:  # More than 5 vehicle difference
+            logger.warning(f"Significant detection difference: Primary={comparison['primary_count']}, Shadow={comparison['shadow_count']}")
+    
+    def _calculate_confidence_correlation(self, primary_detections: List[Dict], shadow_detections: List[Dict]) -> float:
+        """Calculate correlation between detection confidences."""
+        if not primary_detections or not shadow_detections:
+            return 0.0
+        
+        primary_confidences = [d["confidence"] for d in primary_detections]
+        shadow_confidences = [d["confidence"] for d in shadow_detections]
+        
+        # Simple correlation based on mean confidence difference
+        primary_mean = np.mean(primary_confidences)
+        shadow_mean = np.mean(shadow_confidences)
+        
+        return 1.0 - abs(primary_mean - shadow_mean)  # Closer means higher correlation
 
     def estimate_queues(self, frame: np.ndarray) -> List[int]:
         """
-        Estimate queue lengths for each configured ROI.
+        Estimate queue lengths for each configured ROI using enhanced model management.
         
         Args:
             frame: Input video frame (BGR format)
@@ -176,15 +220,22 @@ class YOLOQueueEstimator:
         """
         start_time = time.time()
         
-        if self.model is None:
-            logger.warning("YOLO model not loaded, returning dummy values")
+        if self.model_manager is None:
+            logger.warning("Model manager not available, returning dummy values")
             return [0] * len(self.rois)
         
         try:
-            # Run YOLO detection
-            detections = self._detect_vehicles(frame)
+            # Run primary detection
+            detections, metrics = self.model_manager.predict(frame, use_shadow=False)
             
-            # Update tracking system
+            # Run shadow detection for A/B testing if enabled
+            shadow_detections = []
+            shadow_metrics = None
+            if self.shadow_mode_active:
+                shadow_detections, shadow_metrics = self.model_manager.predict(frame, use_shadow=True)
+                self._compare_shadow_results(detections, shadow_detections, metrics, shadow_metrics)
+            
+            # Update tracking system with primary detections
             self._update_trackers(detections)
             
             # Estimate queues for each ROI
@@ -198,50 +249,21 @@ class YOLOQueueEstimator:
             self.fps_counter.append(1.0 / max(processing_time, 0.001))
             self.last_detection_time = time.time()
             
-            return queue_lengths
-            
-        except Exception as e:
-            logger.error("Error in queue estimation due to an internal error.")
-            return [0] * len(self.rois)
-
-    def _detect_vehicles(self, frame: np.ndarray) -> List[Dict[str, Any]]:
-        """Run YOLO detection on frame and filter for vehicles."""
-        try:
-            # Run inference
-            results = self.model(frame, conf=self.confidence_threshold, iou=self.nms_threshold, verbose=False)
-            
-            detections = []
-            for result in results:
-                boxes = result.boxes
-                if boxes is not None:
-                    for i in range(len(boxes)):
-                        # Extract detection data
-                        bbox = boxes.xyxy[i].cpu().numpy().astype(int)  # [x1, y1, x2, y2]
-                        confidence = float(boxes.conf[i].cpu().numpy())
-                        class_id = int(boxes.cls[i].cpu().numpy())
-                        
-                        # Filter for vehicles only
-                        if class_id in self.vehicle_classes and confidence >= self.confidence_threshold:
-                            centroid = (
-                                (bbox[0] + bbox[2]) / 2,
-                                (bbox[1] + bbox[3]) / 2
-                            )
-                            
-                            detections.append({
-                                "bbox": tuple(bbox),
-                                "centroid": centroid,
-                                "confidence": confidence,
-                                "class_id": class_id
-                            })
-            
+            # Update detection statistics
             self.detection_stats["total_detections"] += len(detections)
             self.detection_stats["vehicles_detected"] += len(detections)
             
-            return detections
+            if self.shadow_mode_active and shadow_detections:
+                self.shadow_detection_stats["total_detections"] += len(shadow_detections)
+                self.shadow_detection_stats["vehicles_detected"] += len(shadow_detections)
+            
+            return queue_lengths
             
         except Exception as e:
-            logger.error("Detection error due to an internal error.")
-            return []
+            logger.error(f"Error in enhanced queue estimation: {e}")
+            return [0] * len(self.rois)
+
+
 
     def _update_trackers(self, detections: List[Dict[str, Any]]):
         """Update vehicle trackers with new detections."""
@@ -411,14 +433,57 @@ class YOLOQueueEstimator:
             return frame
 
     def get_performance_stats(self) -> Dict[str, Any]:
-        """Get current performance statistics."""
-        return {
+        """Get enhanced performance statistics including model manager data."""
+        base_stats = {
             "fps": np.mean(self.fps_counter) if self.fps_counter else 0,
             "active_tracks": len(self.trackers),
             "detection_stats": self.detection_stats.copy(),
             "last_detection_time": self.last_detection_time,
-            "model_loaded": self.model is not None
+            "model_loaded": self.model_manager is not None
         }
+        
+        # Add model manager statistics
+        if self.model_manager:
+            model_summary = self.model_manager.get_performance_summary()
+            base_stats.update({
+                "model_manager": model_summary,
+                "shadow_mode_active": self.shadow_mode_active,
+                "shadow_detection_stats": self.shadow_detection_stats.copy() if self.shadow_mode_active else None,
+                "shadow_comparison_count": len(self.shadow_comparison_results) if self.shadow_mode_active else 0
+            })
+            
+            # Add recent shadow comparison summary
+            if self.shadow_mode_active and self.shadow_comparison_results:
+                recent_comparisons = self.shadow_comparison_results[-10:]  # Last 10 comparisons
+                base_stats["shadow_comparison_summary"] = {
+                    "avg_detection_difference": np.mean([c["detection_difference"] for c in recent_comparisons]),
+                    "avg_confidence_correlation": np.mean([c["confidence_correlation"] for c in recent_comparisons]),
+                    "avg_fps_difference": np.mean([abs(c["primary_fps"] - c["shadow_fps"]) for c in recent_comparisons])
+                }
+        
+        return base_stats
+    
+    def get_shadow_comparison_results(self) -> List[Dict[str, Any]]:
+        """Get detailed shadow mode comparison results for analysis."""
+        return self.shadow_comparison_results.copy()
+    
+    def switch_to_shadow_model(self) -> bool:
+        """Switch active model to shadow model (for manual testing)."""
+        if not self.shadow_mode_active or not self.model_manager:
+            logger.warning("Shadow mode not active or model manager not available")
+            return False
+        
+        # This would require implementing model switching in model manager
+        logger.info("Manual model switch requested - feature placeholder")
+        return True
+    
+    def cleanup(self):
+        """Clean up resources including model manager."""
+        if self.model_manager:
+            self.model_manager.cleanup()
+            self.model_manager = None
+        
+        logger.info("YOLOQueueEstimator cleanup completed")
 
 
 def process_frame_for_queues(detector: YOLOQueueEstimator, frame: 'np.ndarray', rois: 'List[ROIConfig]', min_stationary_seconds: float = 2.0, debug: bool = False) -> Dict[str, Any]:
