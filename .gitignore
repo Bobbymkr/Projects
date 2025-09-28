@@ -12,3 +12,9 @@ artifacts/
 
 #Ignore vscode AI rules
 .github\instructions\codacy.instructions.md
+
+# IDE specific files
+.qoder/
+
+# Duplicate project directory (contains separate git repo)
+Projects/
