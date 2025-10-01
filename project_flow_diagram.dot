@@ -1,0 +1,298 @@
+digraph adaptive_traffic_system {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Arial", fontsize=10];
+    edge [fontname="Arial", fontsize=9];
+
+    // Define colors
+    subgraph cluster_legend {
+        label="Legend";
+        fontsize=12;
+        style=filled;
+        fillcolor=lightgray;
+        
+        legend_input [label="Data Input/Source", fillcolor=lightblue, shape=ellipse];
+        legend_processing [label="Processing Module", fillcolor=lightgreen, shape=box];
+        legend_decision [label="Decision/Control", fillcolor=orange, shape=diamond];
+        legend_output [label="Output/Action", fillcolor=pink, shape=box];
+        legend_storage [label="Storage/Memory", fillcolor=yellow, shape=cylinder];
+        
+        legend_input -> legend_processing;
+        legend_processing -> legend_decision;
+        legend_decision -> legend_output;
+        legend_processing -> legend_storage [style=dashed];
+    }
+
+    // Data Sources Layer
+    subgraph cluster_data_sources {
+        label="Data Sources";
+        fontsize=14;
+        style=filled;
+        fillcolor=lightblue;
+        
+        // Video inputs
+        webcam [label="Webcam Input", fillcolor=lightblue, shape=ellipse];
+        video_file [label="Video File Input", fillcolor=lightblue, shape=ellipse];
+        rtsp_stream [label="RTSP HTTP Stream", fillcolor=lightblue, shape=ellipse];
+        
+        // Simulation
+        sumo_sim [label="SUMO Simulation", fillcolor=lightblue, shape=ellipse];
+        
+        // Historical data
+        traffic_history [label="Historical Traffic Data", fillcolor=lightblue, shape=ellipse];
+        
+        // Configuration
+        config_files [label="Configuration Files JSON", fillcolor=lightblue, shape=ellipse];
+    }
+
+    // Video Processing Pipeline
+    subgraph cluster_video_processing {
+        label="Computer Vision Pipeline";
+        fontsize=14;
+        style=filled;
+        fillcolor=lightgreen;
+        
+        video_input_stream [label="VideoInputStream Threading Buffering", fillcolor=lightgreen];
+        frame_preprocessing [label="Frame Preprocessing Resize Flip ROI", fillcolor=lightgreen];
+        yolo_detection [label="YOLOv8 Vehicle Detection", fillcolor=lightgreen];
+        queue_estimation [label="Queue Length Estimation", fillcolor=lightgreen];
+        roi_processing [label="ROI Processing Per Lane", fillcolor=lightgreen];
+        
+        video_input_stream -> frame_preprocessing;
+        frame_preprocessing -> yolo_detection;
+        yolo_detection -> roi_processing;
+        roi_processing -> queue_estimation;
+    }
+
+    // Environment Processing
+    subgraph cluster_environment {
+        label="Environment Layer";
+        fontsize=14;
+        style=filled;
+        fillcolor=lightcyan;
+        
+        sumo_env [label="SumoEnv TraCI Interface", fillcolor=lightcyan];
+        video_env [label="VideoTrafficEnv Live Video", fillcolor=lightcyan];
+        marl_env [label="MarlEnv Multi-Agent", fillcolor=lightcyan];
+        traffic_env [label="TrafficEnv Base Environment", fillcolor=lightcyan];
+        
+        state_observation [label="State Observation Queue Wait Times", fillcolor=lightcyan];
+        reward_computation [label="Reward Computation", fillcolor=lightcyan];
+        
+        sumo_env -> state_observation;
+        video_env -> state_observation;
+        marl_env -> state_observation;
+        traffic_env -> state_observation;
+        state_observation -> reward_computation;
+    }
+
+    // Forecasting Module
+    subgraph cluster_forecasting {
+        label="Traffic Forecasting";
+        fontsize=14;
+        style=filled;
+        fillcolor=lightyellow;
+        
+        traffic_forecaster [label="TrafficForecaster CNN-LSTM", fillcolor=lightyellow];
+        cnn_layer [label="CNN Layer Spatial Features", fillcolor=lightyellow];
+        lstm_layer [label="LSTM Layer Temporal Modeling", fillcolor=lightyellow];
+        prediction_output [label="Future State Prediction", fillcolor=lightyellow];
+        
+        traffic_forecaster -> cnn_layer;
+        cnn_layer -> lstm_layer;
+        lstm_layer -> prediction_output;
+    }
+
+    // Reinforcement Learning Core
+    subgraph cluster_rl {
+        label="Reinforcement Learning System";
+        fontsize=14;
+        style=filled;
+        fillcolor=orange;
+        
+        dqn_agent [label="DQN Agent Deep Q-Network", fillcolor=orange, shape=diamond];
+        q_network [label="Q-Network Neural Network", fillcolor=orange];
+        target_network [label="Target Network Stability", fillcolor=orange];
+        replay_buffer [label="Replay Buffer Experience Storage", fillcolor=yellow, shape=cylinder];
+        prioritized_buffer [label="Prioritized Replay Buffer", fillcolor=yellow, shape=cylinder];
+        adam_optimizer [label="Adam Optimizer Learning", fillcolor=orange];
+        
+        dqn_agent -> q_network;
+        dqn_agent -> target_network;
+        dqn_agent -> replay_buffer;
+        dqn_agent -> prioritized_buffer;
+        q_network -> adam_optimizer;
+    }
+
+    // Control Strategies
+    subgraph cluster_control {
+        label="Control Strategies";
+        fontsize=14;
+        style=filled;
+        fillcolor=lightcoral;
+        
+        fuzzy_controller [label="Fuzzy Logic Controller", fillcolor=lightcoral, shape=diamond];
+        webster_method [label="Webster Method Traditional", fillcolor=lightcoral, shape=diamond];
+        genetic_algo [label="Genetic Algorithm Optimization", fillcolor=lightcoral, shape=diamond];
+        pso [label="Particle Swarm Optimization", fillcolor=lightcoral, shape=diamond];
+        
+        fuzzy_sets [label="Fuzzy Sets Rules", fillcolor=lightcoral];
+        fuzzy_controller -> fuzzy_sets;
+    }
+
+    // Output and Actions
+    subgraph cluster_output {
+        label="Output & Control Actions";
+        fontsize=14;
+        style=filled;
+        fillcolor=pink;
+        
+        signal_timing [label="Signal Timing Decision", fillcolor=pink];
+        traffic_light_control [label="Traffic Light Control", fillcolor=pink];
+        phase_management [label="Phase Management Green Yellow Red", fillcolor=pink];
+        
+        signal_timing -> traffic_light_control;
+        traffic_light_control -> phase_management;
+    }
+
+    // Monitoring and Analysis
+    subgraph cluster_monitoring {
+        label="Monitoring & Analysis";
+        fontsize=14;
+        style=filled;
+        fillcolor=lightsteelblue;
+        
+        tensorboard [label="TensorBoard Visualization", fillcolor=lightsteelblue];
+        logging_system [label="Logging System Performance Metrics", fillcolor=lightsteelblue];
+        api_server [label="REST API FastAPI", fillcolor=lightsteelblue];
+        health_check [label="Health Check Monitoring", fillcolor=lightsteelblue];
+        metrics_collector [label="Metrics Collector", fillcolor=lightsteelblue];
+        
+        logging_system -> tensorboard;
+        api_server -> health_check;
+        metrics_collector -> logging_system;
+    }
+
+    // Training and Evaluation
+    subgraph cluster_training {
+        label="Training & Evaluation";
+        fontsize=14;
+        style=filled;
+        fillcolor=lavender;
+        
+        training_loop [label="Training Loop Episodes", fillcolor=lavender];
+        benchmark_methods [label="Benchmark Methods", fillcolor=lavender];
+        comparison_analysis [label="Performance Comparison", fillcolor=lavender];
+        model_persistence [label="Model Save Load ZIP NPZ", fillcolor=yellow, shape=cylinder];
+        
+        training_loop -> model_persistence;
+        benchmark_methods -> comparison_analysis;
+    }
+
+    // Data Flow Connections
+    
+    // Video processing flow
+    webcam -> video_input_stream;
+    video_file -> video_input_stream;
+    rtsp_stream -> video_input_stream;
+    queue_estimation -> video_env;
+    
+    // SUMO simulation flow
+    sumo_sim -> sumo_env;
+    config_files -> sumo_env;
+    
+    // Environment to RL flow
+    state_observation -> dqn_agent;
+    reward_computation -> dqn_agent;
+    
+    // Forecasting integration
+    traffic_history -> traffic_forecaster;
+    prediction_output -> marl_env [label="State Augmentation"];
+    
+    // RL decision flow
+    dqn_agent -> signal_timing [label="Action Selection"];
+    
+    // Control alternatives
+    state_observation -> fuzzy_controller;
+    state_observation -> webster_method;
+    state_observation -> genetic_algo;
+    state_observation -> pso;
+    
+    fuzzy_controller -> signal_timing;
+    webster_method -> signal_timing;
+    genetic_algo -> signal_timing;
+    pso -> signal_timing;
+    
+    // Output execution
+    phase_management -> sumo_env [label="Feedback Loop"];
+    phase_management -> video_env [label="Real-world Control"];
+    
+    // Training flow
+    dqn_agent -> training_loop;
+    training_loop -> dqn_agent [label="Model Updates"];
+    
+    // Monitoring connections
+    dqn_agent -> metrics_collector;
+    training_loop -> tensorboard;
+    state_observation -> logging_system;
+    signal_timing -> metrics_collector;
+    
+    // API and health monitoring
+    dqn_agent -> api_server;
+    metrics_collector -> api_server;
+    api_server -> health_check;
+    
+    // Benchmarking
+    fuzzy_controller -> benchmark_methods;
+    webster_method -> benchmark_methods;
+    dqn_agent -> benchmark_methods;
+    benchmark_methods -> comparison_analysis;
+    
+    // Demo and inference flow
+    subgraph cluster_demo {
+        label="Demo & Inference";
+        fontsize=14;
+        style=filled;
+        fillcolor=lightgoldenrodyellow;
+        
+        demo_script [label="demo.py Main Entry", fillcolor=lightgoldenrodyellow];
+        inference_engine [label="Inference Engine Trained Model", fillcolor=lightgoldenrodyellow];
+        visualization [label="Result Visualization Plots Metrics", fillcolor=lightgoldenrodyellow];
+        
+        demo_script -> training_loop;
+        demo_script -> inference_engine;
+        model_persistence -> inference_engine;
+        inference_engine -> visualization;
+    }
+
+    // Configuration and setup
+    subgraph cluster_config {
+        label="Configuration & Setup";
+        fontsize=14;
+        style=filled;
+        fillcolor=mistyrose;
+        
+        config_manager [label="Configuration Manager", fillcolor=mistyrose];
+        scenario_config [label="Scenario Configuration", fillcolor=mistyrose];
+        logging_config [label="Logging Configuration", fillcolor=mistyrose];
+        
+        config_files -> config_manager;
+        config_manager -> scenario_config;
+        config_manager -> logging_config;
+        scenario_config -> sumo_env;
+        scenario_config -> video_env;
+        logging_config -> logging_system;
+    }
+
+    // Multi-agent coordination
+    marl_env -> dqn_agent [label="Multi-agent Coordination"];
+    prediction_output -> dqn_agent [label="Predictive State Input"];
+    
+    // Real-time processing requirements
+    video_input_stream -> queue_estimation [label="30 FPS Real-time"];
+    dqn_agent -> signal_timing [label="5s Control Cycle"];
+    
+    // Performance optimization
+    replay_buffer -> q_network [label="Experience Replay"];
+    prioritized_buffer -> q_network [label="Prioritized Sampling"];
+    target_network -> q_network [label="Stable Targets"];
+}
