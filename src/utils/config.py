@@ -76,13 +76,23 @@ def merge_configs(base_config: Dict[str, Any], override_config: Dict[str, Any]) 
     """Recursively merge two configuration dictionaries.
     
     The override_config values take precedence over base_config values.
+    Nested dictionaries are merged recursively, while other values are
+    directly overridden.
     
     Args:
         base_config: Base configuration dictionary
         override_config: Override configuration dictionary
         
     Returns:
-        Merged configuration dictionary
+        Merged configuration dictionary with override values taking precedence
+        
+    Example:
+        >>> base = {"db": {"host": "localhost", "port": 5432}, "debug": True}
+        >>> override = {"db": {"port": 3306}, "timeout": 30}
+        >>> result = merge_configs(base, override)
+        >>> result["db"]["host"]  # "localhost" (preserved)
+        >>> result["db"]["port"]  # 3306 (overridden)
+        >>> result["timeout"]     # 30 (added)
     """
     result = base_config.copy()
     
@@ -105,12 +115,26 @@ def load_config_with_overrides(base_path: Union[str, Path],
                               override_paths: Optional[List[Union[str, Path]]] = None) -> Dict[str, Any]:
     """Load a base configuration with optional overrides.
     
+    Loads a base configuration file and applies a series of override
+    configurations in order. Each override is merged with the accumulated
+    configuration using recursive merging.
+    
     Args:
         base_path: Path to the base configuration file
-        override_paths: List of paths to override configuration files
+        override_paths: List of paths to override configuration files.
+                       Applied in order from first to last.
         
     Returns:
-        Merged configuration dictionary
+        Merged configuration dictionary with all overrides applied
+        
+    Raises:
+        ConfigError: If any configuration file cannot be loaded
+        
+    Example:
+        >>> config = load_config_with_overrides(
+        ...     "base.json", 
+        ...     ["dev_overrides.json", "user_overrides.json"]
+        ... )
     """
     config = load_config(base_path)
     
@@ -125,15 +149,30 @@ def load_config_with_overrides(base_path: Union[str, Path],
 def validate_config_schema(config: Dict[str, Any], schema_class: Any) -> Any:
     """Validate configuration against a Pydantic schema.
     
+    Uses Pydantic to validate configuration data types, required fields,
+    and custom validation rules defined in the schema class.
+    
     Args:
         config: Configuration dictionary to validate
-        schema_class: Pydantic model class for validation
+        schema_class: Pydantic model class for validation. Must inherit
+                     from pydantic.BaseModel.
         
     Returns:
-        Validated Pydantic model instance
+        Validated Pydantic model instance with type-converted values
         
     Raises:
-        ConfigError: If validation fails
+        ConfigError: If Pydantic is not available or validation fails
+        
+    Example:
+        >>> from pydantic import BaseModel
+        >>> class DBConfig(BaseModel):
+        ...     host: str
+        ...     port: int = 5432
+        >>> validated = validate_config_schema(
+        ...     {"host": "localhost", "port": "3306"},
+        ...     DBConfig
+        ... )
+        >>> validated.port  # 3306 (converted to int)
     """
     if not PYDANTIC_AVAILABLE:
         raise ConfigError("Pydantic is required for configuration validation")
@@ -145,17 +184,28 @@ def validate_config_schema(config: Dict[str, Any], schema_class: Any) -> Any:
 
 
 def load_hydra_config(config_path: str, config_name: str) -> Any:
-    """Load configuration using Hydra.
+    """Load configuration using Hydra framework.
+    
+    Loads configuration using Facebook's Hydra framework, which provides
+    advanced features like composition, overrides, and structured configs.
     
     Args:
-        config_path: Path to the configuration directory
-        config_name: Name of the configuration file
+        config_path: Path to the configuration directory containing
+                    Hydra config files
+        config_name: Name of the configuration file (without extension)
         
     Returns:
-        Hydra DictConfig object
+        Hydra DictConfig object with structured configuration data
         
     Raises:
-        ConfigError: If Hydra is not available or loading fails
+        ConfigError: If Hydra/OmegaConf is not available or loading fails
+        
+    Note:
+        Requires hydra-core and omegaconf packages to be installed.
+        
+    Example:
+        >>> cfg = load_hydra_config("conf", "config")
+        >>> cfg.database.host  # Access nested values with dot notation
     """
     if not OMEGACONF_AVAILABLE:
         raise ConfigError("Hydra/OmegaConf is required to load Hydra configurations")
@@ -180,13 +230,22 @@ def load_hydra_config(config_path: str, config_name: str) -> Any:
 def get_nested_config_value(config: Dict[str, Any], key_path: str, default: Any = None) -> Any:
     """Get a nested configuration value using dot notation.
     
+    Safely navigates nested dictionary structures using dot-separated
+    key paths. Returns the default value if any key in the path is missing.
+    
     Args:
-        config: Configuration dictionary
+        config: Configuration dictionary to search
         key_path: Dot-separated path to the value (e.g., 'database.host')
         default: Default value to return if the key is not found
         
     Returns:
-        The configuration value or default
+        The configuration value at the specified path, or default if not found
+        
+    Example:
+        >>> config = {"db": {"host": "localhost", "port": 5432}}
+        >>> get_nested_config_value(config, "db.host")  # "localhost"
+        >>> get_nested_config_value(config, "db.timeout", 30)  # 30 (default)
+        >>> get_nested_config_value(config, "cache.redis.host", "redis")  # "redis"
     """
     keys = key_path.split('.')
     current = config

@@ -30,13 +30,33 @@ class TrafficForecaster:
         self.model = self._build_model()
 
     def _validate_params(self, input_timesteps, output_timesteps, features, lstm_units, cnn_filters, cnn_kernel):
-        # Detailed comment: Validate initialization parameters to ensure they are positive integers.
+        """Validate initialization parameters to ensure they are positive integers.
+        
+        Args:
+            input_timesteps: Number of past timesteps for input
+            output_timesteps: Number of future timesteps to predict
+            features: Number of features in the data
+            lstm_units: Number of units in LSTM layer
+            cnn_filters: Number of filters in CNN layer
+            cnn_kernel: Kernel size for CNN layer
+            
+        Raises:
+            ValueError: If any parameter is not a positive integer
+        """
         if input_timesteps < 1 or output_timesteps < 1 or features < 1 or lstm_units < 1 or cnn_filters < 1 or cnn_kernel < 1:
             raise ValueError("All parameters must be positive integers")
 
     def _build_model(self):
-        # Detailed comment: Build the CNN-LSTM model architecture.
-        # Returns: Compiled Keras model.
+        """Build the CNN-LSTM model architecture.
+        
+        Creates a hybrid model that combines:
+        1. 1D CNN for local pattern extraction
+        2. LSTM for temporal sequence modeling
+        3. TimeDistributed Dense for multi-step prediction
+        
+        Returns:
+            tensorflow.keras.Model: Compiled Keras model ready for training
+        """
         model = Sequential()
         model.add(Conv1D(filters=self.cnn_filters, kernel_size=self.cnn_kernel, activation='relu', input_shape=(self.input_timesteps, self.features)))
         model.add(MaxPooling1D(pool_size=2))
@@ -48,14 +68,19 @@ class TrafficForecaster:
         return model
 
     def train(self, X, y, epochs=50, batch_size=32, validation_split=0.2, log_dir=None):
-        # Detailed comment: Train the model on provided data.
-        # Parameters:
-        # - X: Input data.
-        # - y: Target data.
-        # - epochs: Number of training epochs.
-        # - batch_size: Batch size for training.
-        # - validation_split: Fraction of data for validation.
-        # - log_dir: Directory for TensorBoard logs.
+        """Train the model on provided data.
+        
+        Args:
+            X: Input training data of shape (samples, timesteps, features)
+            y: Target training data of shape (samples, output_timesteps, features)
+            epochs: Number of training epochs
+            batch_size: Batch size for training
+            validation_split: Fraction of data to use for validation
+            log_dir: Directory for TensorBoard logs (optional)
+            
+        Raises:
+            RuntimeError: If training fails due to internal error
+        """
         try:
             callbacks = []
             if log_dir:
@@ -69,26 +94,43 @@ class TrafficForecaster:
             raise RuntimeError("Training failed due to an internal error.")
 
     def predict(self, X):
-        # Detailed comment: Make predictions using the trained model.
-        # Parameters:
-        # - X: Input data for prediction.
-        # Returns: Predicted values.
+        """Make predictions using the trained model.
+        
+        Args:
+            X: Input data for prediction of shape (samples, timesteps, features)
+            
+        Returns:
+            numpy.ndarray: Predicted values of shape (samples, output_timesteps, features)
+            
+        Raises:
+            RuntimeError: If prediction fails due to internal error
+        """
         try:
             return self.model.predict(X)
         except Exception as e:
             raise RuntimeError("Prediction failed due to an internal error.")
 
     def save(self, path):
-        # Detailed comment: Save the model to a file.
-        # Parameters:
-        # - path: Path to save the model.
+        """Save the model to a file.
+        
+        Args:
+            path: File path where the model should be saved
+        """
         self.model.save(path)
 
     @classmethod
     def load(cls, path):
-        # Detailed comment: Load a saved model from a file.
-        # Parameters:
-        # - path: Path to the saved model.
+        """Load a saved model from a file.
+        
+        Args:
+            path: Path to the saved model file
+            
+        Returns:
+            TrafficForecaster: New instance with loaded model
+            
+        Raises:
+            RuntimeError: If model loading fails due to internal error
+        """
         try:
             model = tf.keras.models.load_model(path)
             forecaster = cls()  # Use defaults, or extract from model if needed

@@ -14,11 +14,30 @@ from src.rl.dqn_agent import DQNAgent, DQNConfig
 
 
 def load_config(path: str) -> Dict[str, Any]:
+    """Load configuration from JSON file.
+    
+    Args:
+        path: Path to configuration file
+        
+    Returns:
+        Configuration dictionary
+    """
     with open(path, 'r') as f:
         return json.load(f)
 
 
 def simulate(cfg_path: str, model_path: str | None, steps: int, seed: int) -> Dict[str, Any]:
+    """Run traffic simulation with optional trained agent.
+    
+    Args:
+        cfg_path: Path to environment configuration file
+        model_path: Path to trained DQN model (None for random actions)
+        steps: Number of simulation steps to run
+        seed: Random seed for reproducibility
+        
+    Returns:
+        Dictionary containing environment instance and simulation history
+    """
     cfg = load_config(cfg_path)
     env = TrafficEnv(cfg)
 
@@ -53,6 +72,13 @@ def simulate(cfg_path: str, model_path: str | None, steps: int, seed: int) -> Di
 
 
 def plot_timeseries(env: TrafficEnv, history: List[Dict[str, Any]], out_path: str):
+    """Create and save a time-series plot of queue lengths.
+    
+    Args:
+        env: Traffic environment instance
+        history: List of simulation step records
+        out_path: Path to save the generated plot
+    """
     if not history:
         return
     queues_over_time = np.array([h["queues"] for h in history], dtype=int)
@@ -75,6 +101,7 @@ def plot_timeseries(env: TrafficEnv, history: List[Dict[str, Any]], out_path: st
 
 
 def main():
+    """Main function to run simulation visualization from command line."""
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='configs/intersection.json')
     parser.add_argument('--model', default=None)

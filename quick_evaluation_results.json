@@ -1,15 +1,15 @@
 {
-  "timestamp": "2025-09-28T15:01:28.400058",
+  "timestamp": "2025-10-03T13:00:02.965225",
   "episodes_evaluated": 10,
-  "avg_reward": -1300.6208203536276,
-  "std_reward": 237.7662960488627,
+  "avg_reward": -1139.3384184396057,
+  "std_reward": 8.681793070574523,
   "avg_episode_length": 1000.0,
   "decision_distribution": {
-    "0": 1293,
+    "0": 0,
     "1": 0,
-    "2": 8707,
+    "2": 10000,
     "3": 0
   },
-  "estimated_accuracy": 84.96895898231861,
+  "estimated_accuracy": 93.03307907801971,
   "performance_grade": "C - Average"
 }

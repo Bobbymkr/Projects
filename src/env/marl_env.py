@@ -56,20 +56,45 @@ class MarlEnv(gym.Env):
         self._init_phases()
 
     def _validate_config(self, min_green, max_green, yellow_time, forecast_steps):
-        # Detailed comment: Validate configuration parameters to ensure logical consistency.
+        """Validate configuration parameters to ensure logical consistency.
+        
+        Args:
+            min_green: Minimum green phase duration
+            max_green: Maximum green phase duration
+            yellow_time: Yellow phase duration
+            forecast_steps: Number of forecasting steps
+            
+        Raises:
+            ValueError: If parameters are invalid or inconsistent
+        """
         if min_green >= max_green:
             raise ValueError("min_green must be less than max_green")
         if yellow_time < 0 or forecast_steps < 1:
             raise ValueError("yellow_time and forecast_steps must be positive")
 
     def _detect_neighbors(self):
-        # Detailed comment: Dynamically detect neighboring intersections for information sharing in MARL.
+        """Dynamically detect neighboring intersections for information sharing in MARL.
+        
+        Returns:
+            Dictionary mapping each intersection to its neighboring intersections
+            
+        Note:
+            This is a placeholder implementation. In a real scenario, this would
+            analyze the road network topology to identify physically connected
+            intersections based on edge connectivity.
+        """
         neighbors = {}
         # Logic to detect neighbors based on connections (placeholder for actual implementation)
         return neighbors
 
     def _init_edge_mapping(self):
-        # Detailed comment: Map each intersection to its incoming edges for state observation.
+        """Map each intersection to its incoming edges for state observation.
+        
+        Populates self.edge_mapping with traffic light IDs as keys and
+        lists of controlled edge IDs as values. This mapping is used to
+        collect traffic state information (queue lengths, waiting times)
+        for each intersection.
+        """
         for tl in self.intersections:
             controlled_links = traci.trafficlight.getControlledLinks(tl)
             edges = set()
@@ -79,12 +104,23 @@ class MarlEnv(gym.Env):
             self.edge_mapping[tl] = list(edges)
 
     def _init_phases(self):
-        # Detailed comment: Set initial phases for all traffic lights.
+        """Set initial phases for all traffic lights.
+        
+        Initializes all traffic lights to phase 0 (first green phase)
+        to ensure consistent starting conditions across episodes.
+        """
         for tl in self.intersections:
             traci.trafficlight.setRedYellowGreenState(tl, self.phase_defs[0])
 
     def _start_sumo(self):
-        # Detailed comment: Launch the SUMO simulation via TraCI.
+        """Launch the SUMO simulation via TraCI.
+        
+        Handles SUMO binary detection, command construction, and connection
+        establishment with robust error handling for existing connections.
+        
+        Raises:
+            RuntimeError: If SUMO binary cannot be found or connection fails
+        """
         # Resolve SUMO binary
         sumo_home = os.environ.get('SUMO_HOME')
         if sumo_home:
@@ -130,7 +166,15 @@ class MarlEnv(gym.Env):
         traci.start(sumo_cmd)
 
     def _get_base_state(self, tl_id):
-        # Detailed comment: Compute base state features (queue and wait times) for a given traffic light.
+        """Compute base state features (queue and wait times) for a given traffic light.
+        
+        Args:
+            tl_id: Traffic light identifier
+            
+        Returns:
+            numpy.ndarray: Base state vector with queue lengths and waiting times
+                          for each direction, padded to ensure consistent size
+        """
         state = []
         for edge in self.edge_mapping[tl_id]:
             queue = traci.edge.getLastStepHaltingNumber(edge)
@@ -142,21 +186,39 @@ class MarlEnv(gym.Env):
         return state
 
     def _get_state(self, tl_id):
-        # Detailed comment: Construct full observation including current state, neighbors, and forecasts.
+        """Construct full observation including current state, neighbors, and forecasts.
+        
+        Args:
+            tl_id: Traffic light identifier
+            
+        Returns:
+            numpy.ndarray: Complete observation vector containing:
+                - Current traffic state (queue lengths, waiting times)
+                - Neighboring intersections' states
+                - Traffic forecasts for future steps
+        """
         current = self._get_base_state(tl_id)
         self.history[tl_id].append(current)
         neighbor_state = []
         for neighbor in self.neighbors.get(tl_id, []):
             neighbor_state.extend(self._get_base_state(neighbor))
         try:
-            prediction = self.forecaster[tl_id].predict(hist_array).flatten()
+            if len(self.history[tl_id]) >= 10:
+                hist_array = np.array(list(self.history[tl_id]))
+                prediction = self.forecaster[tl_id].predict(hist_array).flatten()
+            else:
+                prediction = np.zeros(self.forecast_steps * len(current))
         except Exception:
             print(f"Prediction error for {tl_id}.")
             prediction = np.zeros(self.forecast_steps * len(current))
         return np.concatenate([current, neighbor_state, prediction])
 
     def reset(self):
-        # Detailed comment: Reset the simulation and clear histories. Returns initial observations for all agents.
+        """Reset the simulation and clear histories.
+        
+        Returns:
+            List[numpy.ndarray]: Initial observations for all agents
+        """
         traci.close()
         self._start_sumo()
         self._init_phases()
@@ -165,7 +227,18 @@ class MarlEnv(gym.Env):
         return [self._get_state(tl) for tl in self.intersections]
 
     def step(self, actions):
-        # Detailed comment: Execute actions for all agents, update simulation, compute rewards. Returns next states, rewards, dones, infos.
+        """Execute actions for all agents, update simulation, compute rewards.
+        
+        Args:
+            actions: List of actions for each agent (0=maintain, 1=switch phase)
+            
+        Returns:
+            Tuple containing:
+            - next_states: List of next observations for all agents
+            - rewards: List of rewards for all agents
+            - dones: List of episode termination flags
+            - infos: List of additional information dictionaries
+        """
         rewards = []
         dones = [False] * self.num_agents
         infos = [{}] * self.num_agents
@@ -189,11 +262,29 @@ class MarlEnv(gym.Env):
         return next_states, rewards, dones, infos
 
     def _set_phase(self, tl_id, phase):
-        # Detailed comment: Apply the specified phase to the traffic light.
+        """Apply the specified phase to the traffic light.
+        
+        Args:
+            tl_id: Traffic light identifier
+            phase: Phase index to set (corresponds to phase_defs list)
+        """
         traci.trafficlight.setRedYellowGreenState(tl_id, self.phase_defs[phase])
 
     def _compute_reward(self, tl_id):
-        # Detailed comment: Calculate reward based on queue length, waiting time, and phase flickering.
+        """Calculate reward based on queue length, waiting time, and phase flickering.
+        
+        Args:
+            tl_id: Traffic light identifier
+            
+        Returns:
+            float: Computed reward value (higher is better)
+            
+        Note:
+            Reward components:
+            - Queue penalty: Negative reward proportional to total queue length
+            - Wait penalty: Negative reward proportional to total waiting time
+            - Flicker penalty: Penalty for switching phases too frequently
+        """
         queue = sum(traci.edge.getLastStepHaltingNumber(edge) for edge in self.edge_mapping[tl_id])
         wait = 0
         for edge in self.edge_mapping[tl_id]:
@@ -203,5 +294,9 @@ class MarlEnv(gym.Env):
         return self.reward_weights['queue'] * queue + self.reward_weights['wait'] * wait + self.reward_weights['flicker'] * flicker
 
     def close(self):
-        # Detailed comment: Terminate the SUMO connection.
+        """Terminate the SUMO connection.
+        
+        Cleanly closes the TraCI connection to SUMO simulation.
+        Should be called when the environment is no longer needed.
+        """
         traci.close()

@@ -25,7 +25,7 @@ The **Adaptive Traffic Signal Control System** is a cutting-edge AI-powered solu
 ### **🏆 Performance Results**
 
 | **Algorithm** | **Wait Time** | **Queue Length** | **Efficiency** | **Grade** |
-|---------------|---------------|------------------|----------------|-----------||
+|---------------|---------------|------------------|----------------|-----------|
 | **Fuzzy Control** | 8.51s | 12.5 vehicles | 1.2123 | **A+** |
 | **GNN Forecasting** | 13.58s | 15.4 vehicles | 1.1848 | **A** |
 | **DQN (6000 episodes)** | 21.47s | 23.4 vehicles | 1.2064 | **B+** |
@@ -198,7 +198,7 @@ adaptive_traffic/
 ### **Available Scenarios**
 
 | **Scenario** | **Description** | **Config File** |
-|--------------|-----------------|------------------|
+|--------------|-----------------|-----------------|
 | **Balanced** | Equal traffic from all directions | `configs/intersection.json` |
 | **Morning Rush** | Heavy eastbound traffic | `configs/morning_rush.json` |
 | **Evening Rush** | Heavy westbound traffic | `configs/evening_rush.json` |

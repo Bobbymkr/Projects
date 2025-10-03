@@ -20,20 +20,54 @@ class DQNConfig:
     device: str = None  # Will be set to 'cuda' if available, else 'cpu'
 
 class ReplayBuffer:
+    """Experience replay buffer for storing and sampling transitions.
+    
+    Stores agent experiences and provides random sampling for training.
+    Uses a circular buffer with maximum capacity.
+    """
     def __init__(self, capacity=100000):
+        """Initialize replay buffer.
+        
+        Args:
+            capacity: Maximum number of transitions to store
+        """
         self.memory = deque([], maxlen=capacity)
         
     def push(self, *args):
+        """Store a transition in the buffer.
+        
+        Args:
+            *args: Transition tuple (state, action, reward, next_state, done)
+        """
         self.memory.append(Transition(*args))
         
     def sample(self, batch_size):
+        """Sample a random batch of transitions.
+        
+        Args:
+            batch_size: Number of transitions to sample
+            
+        Returns:
+            List of sampled transitions
+        """
         return random.sample(self.memory, batch_size)
     
     def __len__(self):
         return len(self.memory)
 
 class DQNetwork(nn.Module):
+    """Deep Q-Network for value function approximation.
+    
+    Three-layer fully connected neural network that maps states to Q-values.
+    Uses ReLU activations and outputs Q-values for each possible action.
+    """
     def __init__(self, state_dim, action_dim):
+        """Initialize the DQ-Network.
+        
+        Args:
+            state_dim: Dimensionality of the state space
+            action_dim: Number of possible actions
+        """
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(state_dim, 128),
@@ -44,10 +78,25 @@ class DQNetwork(nn.Module):
         )
         
     def forward(self, x):
+        """Forward pass through the network.
+        
+        Args:
+            x: Input state tensor
+            
+        Returns:
+            Q-values for each action
+        """
         return self.net(x)
 
 class DQNAgent:
     def __init__(self, state_dim, action_dim, cfg=None):
+        """Initialize the DQN agent.
+        
+        Args:
+            state_dim: Dimensionality of the state space
+            action_dim: Number of possible actions
+            cfg: Configuration object with hyperparameters
+        """
         self.cfg = cfg or DQNConfig()
         self.cfg.device = self.cfg.device or ('cuda' if torch.cuda.is_available() else 'cpu')
         
@@ -65,6 +114,14 @@ class DQNAgent:
         self.steps = 0
         
     def select_action(self, state):
+        """Select action using epsilon-greedy policy.
+        
+        Args:
+            state: Current state observation
+            
+        Returns:
+            Selected action index
+        """
         if random.random() < self.epsilon:
             return random.randrange(self.action_dim)
         
@@ -74,9 +131,23 @@ class DQNAgent:
             return q_values.argmax().item()
         
     def push(self, state, action, reward, next_state, done):
+        """Store experience in replay buffer.
+        
+        Args:
+            state: Current state
+            action: Action taken
+            reward: Reward received
+            next_state: Resulting state
+            done: Episode termination flag
+        """
         self.memory.push(state, action, reward, next_state, done)
         
     def train_step(self):
+        """Perform one training step using experience replay.
+        
+        Returns:
+            Training loss value, or None if insufficient data
+        """
         if len(self.memory) < self.cfg.batch_size:
             return None
         
@@ -116,6 +187,11 @@ class DQNAgent:
         return loss.item()
     
     def save(self, path):
+        """Save agent state to file.
+        
+        Args:
+            path: File path to save checkpoint
+        """
         checkpoint = {
             'policy_net': self.policy_net.state_dict(),
             'target_net': self.target_net.state_dict(),
@@ -127,6 +203,11 @@ class DQNAgent:
         torch.save(checkpoint, path)
         
     def load(self, path):
+        """Load agent state from file.
+        
+        Args:
+            path: File path to load checkpoint from
+        """
         checkpoint = torch.load(path)
         self.policy_net.load_state_dict(checkpoint['policy_net'])
         self.target_net.load_state_dict(checkpoint['target_net'])

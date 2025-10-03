@@ -10,6 +10,15 @@ from dqn_agent import DQNAgent, DQNConfig  # Custom DQN
 
 # Function to train and benchmark SB3 DQN
 def benchmark_sb3(env, total_steps=10000):
+    """Train and benchmark Stable Baselines3 DQN implementation.
+    
+    Args:
+        env: Training environment instance
+        total_steps: Number of training steps to run
+        
+    Returns:
+        Tuple of (training_time, average_reward)
+    """
     start_time = time.time()
     model = DQN('MlpPolicy', env, verbose=0)
     model.learn(total_timesteps=total_steps)
@@ -30,6 +39,15 @@ def benchmark_sb3(env, total_steps=10000):
 
 # Function to train and benchmark custom DQN
 def benchmark_custom(env, total_steps=10000):
+    """Train and benchmark custom NumPy DQN implementation.
+    
+    Args:
+        env: Training environment instance
+        total_steps: Number of training steps to run
+        
+    Returns:
+        Tuple of (training_time, average_reward)
+    """
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
     agent = DQNAgent(state_dim, action_dim, DQNConfig())

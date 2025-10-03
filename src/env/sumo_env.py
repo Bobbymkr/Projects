@@ -44,12 +44,23 @@ class SumoEnv(gym.Env):
         self._sumo_log_file = None
 
     def _get_queues(self):
+        """Get queue lengths for all incoming directions.
+        
+        Returns:
+            numpy.ndarray: Queue lengths for each direction (N, S, E, W),
+                          capped at queue_capacity
+        """
         queues = np.zeros(self.num_directions, dtype=int)
         for i, edge in enumerate(self.incoming_edges):
             queues[i] = traci.edge.getLastStepHaltingNumber(edge)  # Better for queue length
         return np.minimum(queues, self.queue_capacity)
 
     def _get_wait_times(self):
+        """Get average waiting times for all incoming directions.
+        
+        Returns:
+            numpy.ndarray: Average waiting times per lane for each direction
+        """
         wait_times = np.zeros(self.num_directions, dtype=float)
         for i, edge in enumerate(self.incoming_edges):
             lanes = [f"{edge}_{i}" for i in range(4)]  # Assuming 4 lanes per edge
@@ -58,11 +69,29 @@ class SumoEnv(gym.Env):
         return wait_times
 
     def _compute_reward(self, queues, wait_times) -> float:
+        """Compute reward based on queue lengths and waiting times.
+        
+        Args:
+            queues: Current queue lengths for each direction
+            wait_times: Current waiting times for each direction
+            
+        Returns:
+            float: Reward value (higher is better, typically negative)
+        """
         queue_cost = self.reward_weights.get("queue", -1.0) * float(np.sum(queues))
         wait_cost = self.reward_weights.get("wait_penalty", -0.1) * float(np.sum(wait_times))
         return queue_cost + wait_cost
 
     def reset(self, *, seed: int | None = None, options: Dict[str, Any] | None = None) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """Reset the environment to initial state.
+        
+        Args:
+            seed: Random seed for reproducibility
+            options: Additional reset options
+            
+        Returns:
+            Tuple of (initial_observation, info_dict)
+        """
         if seed is not None:
             np.random.seed(seed)
         # Close any existing connection
@@ -114,6 +143,14 @@ class SumoEnv(gym.Env):
         return queues.astype(np.float32), info  # Change to float32 for SB3 compatibility
 
     def step(self, action: int):
+        """Execute one environment step.
+        
+        Args:
+            action: Action index corresponding to green duration
+            
+        Returns:
+            Tuple of (observation, reward, terminated, truncated, info)
+        """
         assert self.action_space.contains(action), "Invalid action"
         green_duration = int(self.green_values[action])
 
@@ -145,10 +182,17 @@ class SumoEnv(gym.Env):
         return queues.astype(np.int32), reward, terminated, truncated, info
 
     def _set_phase(self, phase_idx: int, duration: int):
+        """Set traffic light phase.
+        
+        Args:
+            phase_idx: Phase index (0 for NS green, 1 for EW green)
+            duration: Duration to maintain the phase (for future use)
+        """
         traci.trafficlight.setRedYellowGreenState(self.tls_id, self.phase_defs[phase_idx])
         # In real use, set phase duration if needed; here assuming state sets it
 
     def close(self):
+        """Clean up resources and close SUMO connection."""
         try:
             traci.close()
         except traci.exceptions.TraCIException:
@@ -165,6 +209,14 @@ class SumoEnv(gym.Env):
             pass
 
     def render(self, mode='human'):
+        """Render the environment.
+        
+        Args:
+            mode: Rendering mode (currently unused)
+            
+        Note:
+            GUI rendering is handled by SUMO if using sumo-gui
+        """
         pass  # GUI handled by SUMO if using sumo-gui
 
 if __name__ == "__main__":

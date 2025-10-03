@@ -10,10 +10,26 @@ from src.env.traffic_env import TrafficEnv
 from src.rl.pytorch_dqn import DQNAgent, DQNConfig
 
 def load_config(path: str):
+    """Load configuration from JSON file.
+    
+    Args:
+        path: Path to configuration file
+        
+    Returns:
+        dict: Configuration dictionary
+    """
     with open(path, 'r') as f:
         return json.load(f)
 
 def train(cfg_path: str, episodes: int, out_dir: str, device: str = None):
+    """Train DQN agent using PyTorch implementation.
+    
+    Args:
+        cfg_path: Path to environment configuration file
+        episodes: Number of training episodes
+        out_dir: Output directory for saving models and checkpoints
+        device: PyTorch device string (e.g., 'cuda:0', 'cpu')
+    """
     os.makedirs(out_dir, exist_ok=True)
     cfg = load_config(cfg_path)
     env = TrafficEnv(cfg)

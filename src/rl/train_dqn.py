@@ -26,12 +26,22 @@ from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 class EpisodeRewardCallback(BaseCallback):
     """Callback to track episode rewards during training."""
     def __init__(self, verbose=0):
+        """Initialize the episode reward callback.
+        
+        Args:
+            verbose: Verbosity level for logging (0=silent, 1=print rewards)
+        """
         super(EpisodeRewardCallback, self).__init__(verbose)
         self.episode_rewards = []
         self.current_episode_reward = 0.0
         self.episode_count = 0
 
     def _on_step(self) -> bool:
+        """Called at each environment step during training.
+        
+        Returns:
+            bool: Always True to continue training
+        """
         # Track rewards
         if len(self.locals.get('rewards', [])) > 0:
             self.current_episode_reward += self.locals['rewards'][0]
@@ -47,27 +57,36 @@ class EpisodeRewardCallback(BaseCallback):
         return True
 
     def _on_training_end(self) -> None:
+        """Called at the end of training to print final statistics."""
         if self.verbose > 0:
             avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0.0
             print(f"Training completed. Average reward: {avg_reward:.2f}")
 
 
 def load_config(path: str):
-    # Detailed comment: Load configuration from a JSON file.
-    # Parameters:
-    # - path: Path to the configuration file.
-    # Returns: Dictionary of configuration settings.
+    """Load configuration from a JSON file.
+    
+    Args:
+        path: Path to the configuration file
+        
+    Returns:
+        dict: Dictionary of configuration settings
+    """
     with open(path, 'r') as f:
         return json.load(f)
 
 
 def make_env(cfg_path: str, use_sumo: bool, use_marl: bool):
-    # Detailed comment: Create the appropriate environment based on flags.
-    # Parameters:
-    # - cfg_path: Path to configuration.
-    # - use_sumo: Flag to use SUMO environment.
-    # - use_marl: Flag to use MARL environment.
-    # Returns: Instantiated environment.
+    """Create the appropriate environment based on configuration flags.
+    
+    Args:
+        cfg_path: Path to environment configuration file
+        use_sumo: Flag to use SUMO-based environment
+        use_marl: Flag to use Multi-Agent RL environment
+        
+    Returns:
+        Environment instance (TrafficEnv, SumoEnv, or MarlEnv)
+    """
     if use_marl:
         return MarlEnv(config_path=cfg_path)
     cfg = load_config(cfg_path)
@@ -77,16 +96,24 @@ def make_env(cfg_path: str, use_sumo: bool, use_marl: bool):
 
 
 def train(cfg_path: str, episodes: int, out_dir: str, use_sumo: bool, use_marl: bool, tune: bool = False, n_envs: int = 1, method: str = 'dqn'):
-    # Detailed comment: Train or evaluate the selected method with optional tuning and parallelization.
-    # Parameters updated to include method.
-    # Parameters:
-    # - cfg_path: Configuration path.
-    # - episodes: Number of training episodes.
-    # - out_dir: Output directory for saves.
-    # - use_sumo: Use SUMO env.
-    # - use_marl: Use MARL setup.
-    # - tune: Perform hyperparameter tuning.
-    # - n_envs: Number of parallel environments (single-agent only).
+    """Train or evaluate the selected control method with optional hyperparameter tuning.
+    
+    This function supports multiple training/evaluation modes:
+    - Single-agent DQN training with optional parallelization
+    - Multi-agent reinforcement learning (MARL) with forecasting
+    - Classical control methods (Fuzzy, Webster, GA, PSO, GNN)
+    - Hyperparameter optimization using Optuna
+    
+    Args:
+        cfg_path: Path to environment configuration file
+        episodes: Number of training/evaluation episodes
+        out_dir: Output directory for saving models and results
+        use_sumo: Use SUMO-based traffic simulation environment
+        use_marl: Use Multi-Agent RL with intersection coordination
+        tune: Perform hyperparameter tuning with Optuna
+        n_envs: Number of parallel environments (single-agent only)
+        method: Control method to use ('dqn', 'fuzzy', 'webster', 'ga', 'pso', 'gnn')
+    """
     os.makedirs(out_dir, exist_ok=True)
     if use_marl:
         if n_envs > 1:

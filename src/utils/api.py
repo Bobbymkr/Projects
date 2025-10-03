@@ -77,12 +77,26 @@ def create_api_app(
     
     # Add CORS middleware if enabled
     if enable_cors:
+        # Production-safe CORS configuration - NO WILDCARDS
+        allowed_origins = [
+            "http://localhost:3000",
+            "http://localhost:8080", 
+            "https://localhost:3000",
+            "https://localhost:8080"
+        ]
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_origins=allowed_origins,
+            allow_credentials=False,  # Disable credentials for security
+            allow_methods=["GET", "POST", "PUT", "DELETE"],  # Explicit methods only
+            allow_headers=[
+                "accept",
+                "accept-language", 
+                "content-type",
+                "x-api-key",
+                "authorization"
+            ],
+            max_age=3600,  # Cache preflight for 1 hour
         )
     
     # Set up metrics if enabled
