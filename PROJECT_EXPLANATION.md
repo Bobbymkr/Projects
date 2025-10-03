@@ -3,7 +3,7 @@
 
 ---
 
-## 🎯 Project Overview
+## Project Overview
 
 This project implements an **intelligent adaptive traffic signal control system** using **Deep Reinforcement Learning (DRL)**. The system automatically optimizes traffic signal timing at intersections by learning from real-time traffic conditions, significantly reducing congestion, wait times, and improving overall traffic flow efficiency.
 
@@ -12,7 +12,7 @@ Unlike traditional fixed-time traffic signals, this system uses **Deep Q-Network
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ### 1. **Core Components**
 
@@ -52,7 +52,7 @@ Video Input → Vehicle Detection → Queue Estimation → DQN Agent → Signal 
 
 ---
 
-## 🧠 Technical Implementation
+## Technical Implementation
 
 ### **1. State Representation**
 The system observes the current traffic state as:

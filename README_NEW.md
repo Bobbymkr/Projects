@@ -1,4 +1,4 @@
-# 🚦 Adaptive Traffic Signal Control System
+# Adaptive Traffic Signal Control System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -8,21 +8,21 @@
 
 > **World-class intelligent traffic signal control system using Deep Reinforcement Learning, Computer Vision, and Multi-Agent coordination for optimizing urban traffic flow.**
 
-## 🎯 **Overview**
+## **Overview**
 
 The **Adaptive Traffic Signal Control System** is a cutting-edge AI-powered solution that revolutionizes urban traffic management. By combining **Deep Q-Network (DQN) reinforcement learning**, **real-time computer vision**, and **traffic forecasting**, this system achieves up to **40% reduction in wait times** and **30% increase in traffic throughput** compared to traditional fixed-time signals.
 
-### **🌟 Key Features**
+### **Key Features**
 
-- **🧠 AI-Powered Decision Making**: DQN agents learn optimal signal timing strategies
-- **👁️ Real-Time Vision Processing**: YOLOv8-based vehicle detection and queue estimation
-- **🔮 Traffic Forecasting**: CNN-LSTM models predict future traffic conditions
-- **🤝 Multi-Agent Coordination**: City-wide intersection networks with MARL
-- **⚡ Real-Time Performance**: Sub-microsecond decision making
-- **🎛️ Multiple Control Strategies**: DQN, Fuzzy Logic, Webster's Method, Genetic Algorithms
-- **📊 Comprehensive Analytics**: TensorBoard integration and performance monitoring
+- **AI-Powered Decision Making**: DQN agents learn optimal signal timing strategies
+- **Real-Time Vision Processing**: YOLOv8-based vehicle detection and queue estimation
+- **Traffic Forecasting**: CNN-LSTM models predict future traffic conditions
+- **Multi-Agent Coordination**: City-wide intersection networks with MARL
+- **Real-Time Performance**: Sub-microsecond decision making
+- **Multiple Control Strategies**: DQN, Fuzzy Logic, Webster's Method, Genetic Algorithms
+- **Comprehensive Analytics**: TensorBoard integration and performance monitoring
 
-### **🏆 Performance Results**
+### **Performance Results**
 
 | **Algorithm** | **Wait Time** | **Queue Length** | **Efficiency** | **Grade** |
 |---------------|---------------|------------------|----------------|-----------|
@@ -31,7 +31,7 @@ The **Adaptive Traffic Signal Control System** is a cutting-edge AI-powered solu
 | **DQN (6000 episodes)** | 21.47s | 23.4 vehicles | 1.2064 | **B+** |
 | **Traditional (Webster)** | 27.37s | 24.9 vehicles | 1.1612 | **C** |
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Prerequisites**
 
@@ -40,7 +40,7 @@ The **Adaptive Traffic Signal Control System** is a cutting-edge AI-powered solu
 - **8GB RAM** (16GB recommended)
 - **GPU** (Optional, for faster training)
 
-### **⚡ 30-Second Setup**
+### **30-Second Setup**
 
 ```bash
 # 1. Clone the repository
@@ -59,7 +59,7 @@ pip install -r requirements.txt
 python demo.py
 ```
 
-### **📱 Interactive Demo**
+### **Interactive Demo**
 
 ```bash
 # Run simplified demo (no dependencies)
@@ -72,9 +72,9 @@ python demo.py
 python demo_professional.py
 ```
 
-## 📖 **Usage Examples**
+## **Usage Examples**
 
-### **🎮 Basic Training**
+### **Basic Training**
 
 ```bash
 # Quick training (5 episodes)
@@ -87,7 +87,7 @@ python src/rl/train_dqn_pytorch.py --episodes 6000 --out runs/production
 python src/rl/train_dqn.py --episodes 100 --marl --config configs/grid.sumocfg
 ```
 
-### **🔬 Advanced Training Options**
+### **Advanced Training Options**
 
 ```bash
 # With hyperparameter tuning
@@ -100,7 +100,7 @@ python src/rl/train_dqn.py --episodes 100 --use_sumo --config configs/grid.sumoc
 python src/rl/train_dqn.py --episodes 100 --n_envs 4
 ```
 
-### **📹 Real-Time Inference**
+### **Real-Time Inference**
 
 ```bash
 # Use webcam for real-time control
@@ -113,7 +113,7 @@ python src/rl/inference.py video --model runs/dqn_traffic.npz --video_source tra
 python src/rl/inference.py sim --model runs/dqn_traffic.npz --episodes 10
 ```
 
-### **📊 Performance Analysis**
+### **Performance Analysis**
 
 ```bash
 # Benchmark different algorithms
@@ -126,28 +126,28 @@ python evaluate_700ep_agent.py
 python comprehensive_accuracy_assessment.py
 ```
 
-## 🏗️ **Architecture**
+## **Architecture**
 
 ```mermaid
 graph TB
-    subgraph "🎯 Perception Layer"
+    subgraph "Perception Layer"
         A[Video Input] --> B[YOLOv8 Detection]
         B --> C[Queue Estimation]
     end
     
-    subgraph "🌍 Environment Layer"
+    subgraph "Environment Layer"
         D[SUMO Simulation] --> E[State Observation]
         F[TrafficEnv] --> E
         G[VideoEnv] --> E
     end
     
-    subgraph "🧠 Decision Layer"
+    subgraph "Decision Layer"
         H[DQN Agent] --> I[Action Selection]
         J[Fuzzy Controller] --> I
         K[Traffic Forecaster] --> I
     end
     
-    subgraph "⚙️ Control Layer"
+    subgraph "Control Layer"
         I --> L[Signal Timing]
         L --> M[Traffic Signals]
     end
@@ -157,25 +157,25 @@ graph TB
     K --> H
 ```
 
-### **📁 Project Structure**
+### **Project Structure**
 
 ```
 adaptive_traffic/
-├── 🧠 src/                     # Source code
+├── src/                     # Source code
 │   ├── rl/                    # Reinforcement Learning (DQN, training, inference)
 │   ├── env/                   # Environments (Traffic, SUMO, MARL, Video)
 │   ├── vision/                # Computer Vision (YOLOv8, ROI processing)
 │   ├── forecast/              # Traffic Forecasting (CNN-LSTM models)
 │   ├── control/               # Control Strategies (Fuzzy, Webster, GA, PSO)
 │   └── utils/                 # Utilities (config, metrics, health)
-├── ⚙️ configs/                 # Configuration files for scenarios
-├── 🧪 tests/                   # Comprehensive test suite
-├── 📊 reports/                 # Documentation and reports
-├── 🔧 scripts/                 # Setup and utility scripts
-└── 📋 requirements.txt         # Dependencies
+├── configs/                 # Configuration files for scenarios
+├── tests/                   # Comprehensive test suite
+├── reports/                 # Documentation and reports
+├── scripts/                 # Setup and utility scripts
+└── requirements.txt         # Dependencies
 ```
 
-## 🎛️ **Configuration**
+## **Configuration**
 
 ### **Basic Intersection Setup**
 
@@ -205,7 +205,7 @@ adaptive_traffic/
 | **North Heavy** | Dominant north-south flow | `configs/north_heavy.json` |
 | **Cross Flow** | Diagonal traffic patterns | `configs/cross_flow.json` |
 
-## 🧪 **Testing**
+## **Testing**
 
 ### **Run Test Suite**
 
@@ -235,7 +235,7 @@ python src/rl/benchmark_dqn.py
 python tests/performance/test_performance_benchmarks.py
 ```
 
-## 🚀 **Deployment**
+## **Deployment**
 
 ### **Production Deployment**
 
@@ -274,7 +274,7 @@ CMD ["python", "src/main.py"]
 - **Google Cloud**: AI Platform support
 - **Edge**: NVIDIA Jetson for real-time deployment
 
-## 📊 **Monitoring & Observability**
+## **Monitoring & Observability**
 
 ### **TensorBoard Integration**
 
@@ -303,7 +303,7 @@ python scripts/system_report.py
 - **Wait Time**: Average reduction 30-50%
 - **System Uptime**: 99.9% target
 
-## 🤝 **Contributing**
+## **Contributing**
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
@@ -330,7 +330,7 @@ pre-commit install
 - **Testing**: pytest with 85% coverage minimum
 - **Documentation**: Google-style docstrings
 
-## 📚 **Documentation**
+## **Documentation**
 
 ### **Complete Documentation**
 
@@ -346,32 +346,32 @@ pre-commit install
 - **[Algorithm Comparison](reports/algorithm-comparison.pdf)**: Comparative analysis
 - **[Case Studies](reports/case-studies.pdf)**: Real-world implementations
 
-## 🛡️ **Security**
+## **Security**
 
 - **Input Validation**: Comprehensive parameter validation
 - **Error Handling**: Production-grade exception management
 - **Logging**: Secure logging without sensitive data
 - **Dependencies**: Regular security audits
 
-## 📄 **License**
+## **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 **Acknowledgments**
+## **Acknowledgments**
 
 - **SUMO**: Simulation of Urban MObility
 - **YOLOv8**: Ultralytics object detection
 - **TensorFlow/PyTorch**: Deep learning frameworks
 - **OpenCV**: Computer vision library
 
-## 📞 **Support**
+## **Support**
 
 - **Documentation**: [https://adaptive-traffic.readthedocs.io](https://adaptive-traffic.readthedocs.io)
 - **Issues**: [GitHub Issues](https://github.com/your-org/adaptive-traffic/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-org/adaptive-traffic/discussions)
 - **Email**: support@adaptive-traffic.org
 
-## 🎯 **What's Next?**
+## **What's Next?**
 
 - **Real-world Deployment**: City pilot programs
 - **Advanced Algorithms**: PPO, A3C implementations
@@ -382,8 +382,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**⭐ Star this repo if you find it useful! ⭐**
+**Star this repo if you find it useful!**
 
-**🚦 Building smarter cities with AI 🚦**
+**Building smarter cities with AI**
 
 </div>
