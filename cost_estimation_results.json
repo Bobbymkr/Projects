@@ -1,0 +1,119 @@
+{
+  "timestamp": "2025-10-04T11:17:03.996477",
+  "function_points": {
+    "ufp": 397,
+    "ufp_breakdown": {
+      "EI": 68,
+      "EO": 70,
+      "EQ": 62,
+      "ILF": 134,
+      "EIF": 63
+    },
+    "tcf": 1.24,
+    "adjusted_fp": 492,
+    "functions": {
+      "EI": {
+        "simple": 2,
+        "average": 8,
+        "complex": 5
+      },
+      "EO": {
+        "simple": 3,
+        "average": 6,
+        "complex": 4
+      },
+      "EQ": {
+        "simple": 4,
+        "average": 8,
+        "complex": 3
+      },
+      "ILF": {
+        "simple": 2,
+        "average": 6,
+        "complex": 4
+      },
+      "EIF": {
+        "simple": 1,
+        "average": 4,
+        "complex": 3
+      }
+    }
+  },
+  "cocomo": {
+    "kloc": 26.076,
+    "project_type": "embedded",
+    "effort_basic": 180.21530351536663,
+    "effort_adjusted": 240.49595171165493,
+    "schedule": 14.450886670953212,
+    "team_size": 16.642297264365116,
+    "eaf": 1.334492393378503
+  },
+  "costs": {
+    "development_costs": {
+      "costs_by_role": {
+        "senior_developer": {
+          "effort_months": 48.099190342330985,
+          "monthly_rate": 12000,
+          "total_cost": 577190.2841079718
+        },
+        "mid_developer": {
+          "effort_months": 72.14878551349648,
+          "monthly_rate": 8000,
+          "total_cost": 577190.2841079718
+        },
+        "junior_developer": {
+          "effort_months": 36.07439275674824,
+          "monthly_rate": 5000,
+          "total_cost": 180371.9637837412
+        },
+        "ml_engineer": {
+          "effort_months": 36.07439275674824,
+          "monthly_rate": 14000,
+          "total_cost": 505041.4985944753
+        },
+        "devops_engineer": {
+          "effort_months": 12.024797585582746,
+          "monthly_rate": 10000,
+          "total_cost": 120247.97585582746
+        },
+        "qa_engineer": {
+          "effort_months": 24.049595171165493,
+          "monthly_rate": 7000,
+          "total_cost": 168347.16619815846
+        },
+        "project_manager": {
+          "effort_months": 7.214878551349647,
+          "monthly_rate": 11000,
+          "total_cost": 79363.66406484612
+        },
+        "architect": {
+          "effort_months": 4.809919034233099,
+          "monthly_rate": 15000,
+          "total_cost": 72148.78551349648
+        }
+      },
+      "total_development_cost": 2279901.622226489
+    },
+    "additional_costs": {
+      "infrastructure": 341985.2433339733,
+      "tools_licenses": 182392.1297781191,
+      "testing_qa": 455980.32444529777,
+      "documentation": 227990.16222264888,
+      "training": 113995.08111132444,
+      "contingency": 341985.2433339733
+    },
+    "total_development_cost": 2279901.622226489,
+    "total_additional_cost": 1664328.1842253369,
+    "total_project_cost": 3944229.8064518254
+  },
+  "summary": {
+    "function_points": 492,
+    "estimated_kloc": 26.076,
+    "actual_kloc": 12.943,
+    "accuracy_percentage": -1.467974967163732,
+    "effort_months": 240.49595171165493,
+    "schedule_months": 14.450886670953212,
+    "team_size": 16.642297264365116,
+    "total_cost": 3944229.8064518254
+  }
+}
