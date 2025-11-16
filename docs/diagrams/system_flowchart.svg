@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2C3E50"/>
+    </marker>
+    <style>
+      .title{font-family:Segoe UI, Arial; font-size:26px; font-weight:bold; fill:#2C3E50}
+      .step{stroke:#34495E; fill:#FFFFFF; stroke-width:2; rx:12}
+      .arrow{stroke:#2C3E50; stroke-width:2; fill:none; marker-end:url(#arrow)}
+      .label{font-family:Segoe UI, Arial; font-size:16px; fill:#2C3E50}
+      .desc{font-family:Segoe UI, Arial; font-size:12px; fill:#566573}
+      .accent{fill:#F39C12}
+    </style>
+  </defs>
+
+  <text x="600" y="40" text-anchor="middle" class="title">System Flow — From Inputs to Smoother Traffic</text>
+
+  <rect x="80" y="100" width="280" height="100" class="step"/>
+  <text x="100" y="130" class="label">1) Receive Inputs</text>
+  <text x="100" y="155" class="desc">Camera video or simulation scenario</text>
+
+  <rect x="430" y="100" width="280" height="100" class="step"/>
+  <text x="450" y="130" class="label">2) Prepare Data</text>
+  <text x="450" y="155" class="desc">Detect cars, estimate queues, read road state</text>
+
+  <rect x="780" y="100" width="320" height="150" class="step"/>
+  <text x="800" y="130" class="label">3) Decide Next Light</text>
+  <text x="800" y="155" class="desc">AI + rules + forecast combine to pick action</text>
+  <circle cx="1080" cy="168" r="5" class="accent"/>
+
+  <rect x="80" y="270" width="280" height="100" class="step"/>
+  <text x="100" y="300" class="label">4) Apply & Observe</text>
+  <text x="100" y="325" class="desc">Send timing to signals and watch effects</text>
+
+  <rect x="430" y="270" width="280" height="100" class="step"/>
+  <text x="450" y="300" class="label">5) Monitor & Report</text>
+  <text x="450" y="325" class="desc">Wait time, queue length, throughput</text>
+
+  <rect x="780" y="270" width="320" height="120" class="step"/>
+  <text x="800" y="300" class="label">6) Learn & Improve</text>
+  <text x="800" y="325" class="desc">Adjust strategy over time to reduce waits</text>
+
+  <line x1="360" y1="150" x2="430" y2="150" class="arrow"/>
+  <line x1="710" y1="150" x2="780" y2="150" class="arrow"/>
+  <line x1="240" y1="200" x2="240" y2="270" class="arrow"/>
+  <line x1="710" y1="320" x2="780" y2="320" class="arrow"/>
+  <line x1="1080" y1="220" x2="240" y2="270" class="arrow"/>
+  <text x="1040" y="230" class="desc">Results feed back</text>
+
+  <text x="600" y="430" text-anchor="middle" class="desc">Loop continues: system adapts while enforcing safety rules</text>
+</svg>
