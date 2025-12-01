@@ -65,6 +65,12 @@ try:
 except ImportError as e:
     logger.warning(f"Could not import graphql router: {e}")
 
+try:
+    from .adaptation import router as adaptation_router
+    _route_modules['adaptation'] = adaptation_router
+except ImportError as e:
+    logger.warning(f"Could not import adaptation router: {e}")
+
 # Include sub-routers (only if they were successfully imported)
 if 'traffic' in _route_modules:
     api_router.include_router(_route_modules['traffic'], prefix="/traffic", tags=["Traffic Control"])
@@ -86,6 +92,9 @@ if 'auth' in _route_modules:
 
 if 'graphql' in _route_modules:
     api_router.include_router(_route_modules['graphql'], tags=["GraphQL"])
+
+if 'adaptation' in _route_modules:
+    api_router.include_router(_route_modules['adaptation'], tags=["Regional Adaptation"])
 
 # WebSocket router
 try:

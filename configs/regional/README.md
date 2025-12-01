@@ -88,6 +88,43 @@ This directory contains example configuration files for different regional scena
 
 ---
 
+### 6. `surat_gujarat_india.json`
+**For:** Surat, Gujarat, India - High-density mixed traffic urban city
+
+**Key Features:**
+- City-specific configuration for Surat, Gujarat
+- High queue capacity (65) for mixed vehicle types
+- Longer yellow (4s) and all-red (2s) times for safety
+- Lower confidence threshold (0.35) for detecting small vehicles
+- Comprehensive vehicle mix (motorcycles 30-40%, auto-rickshaws 15-20%)
+- Smart City Mission integration considerations
+- Industrial area (Hazira) and commercial zone adaptations
+
+**Usage:** Specifically designed for:
+- Surat, Gujarat, India intersections
+- High-density mixed traffic with poor lane discipline
+- Industrial and commercial zones
+- Integration with Surat Smart City infrastructure
+- Edge computing deployment
+
+**Recommended Stack:** Fuzzy Logic + YOLOv8-small (edge deployment with cloud backup)
+
+**Special Considerations:**
+- Monsoon season adjustments (June-September)
+- Festival traffic patterns (Navratri, Diwali)
+- Industrial area heavy truck traffic
+- BRTS (Bus Rapid Transit System) integration
+- Integration with Surat Smart City Command and Control Center
+
+**Deployment Phases:**
+1. **Phase 1**: Single intersection pilot (3-6 months)
+2. **Phase 2**: 5-10 key intersections (6-12 months)
+3. **Phase 3**: City-wide deployment 50+ intersections (12-24 months)
+
+**Cost Estimate:** $15K-$25K per intersection
+
+---
+
 ## How to Use These Configurations
 
 ### Step 1: Select Base Configuration

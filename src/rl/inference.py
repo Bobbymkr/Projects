@@ -234,24 +234,47 @@ def run_video_inference(cfg_path: str,
     env = None
     try:
         env = create_video_environment(traffic_config, video_stream, roi_manager, detector)
+        obs, _ = env.reset()
+        
         if method == 'dqn':
             agent = DQNAgent(state_dim=env.observation_space.shape[0], action_dim=env.action_space.n, cfg=DQNConfig())
             agent.load(model_path)
-            obs, _ = env.reset()
             action = agent.select_action(obs.astype(np.float32), evaluate=True)
             green_sec = env.green_values[action]
             print(f"Recommended green time (seconds): {int(green_sec)}")
         elif method == 'fuzzy':
             controller = FuzzyController()
-            obs, _ = env.reset()
             action = controller.get_action(obs)
             green_sec = env.green_values[action]
             print(f"Recommended green time (seconds): {int(green_sec)}")
-        # Add similar branches for other methods
-        obs, _ = env.reset()
-        action = controller.get_action(obs)
-        green_sec = env.green_values[action]
-        print(f"Recommended green time (seconds): {int(green_sec)}")
+        elif method == 'ga':
+            optimizer = GeneticAlgorithm()
+            action = optimizer.get_action(obs)
+            green_sec = env.green_values[action]
+            print(f"Recommended green time (seconds): {int(green_sec)}")
+        elif method == 'pso':
+            optimizer = ParticleSwarmOptimizer()
+            action = optimizer.get_action(obs)
+            green_sec = env.green_values[action]
+            print(f"Recommended green time (seconds): {int(green_sec)}")
+        elif method == 'gnn':
+            forecaster = GNNForecaster()
+            if model_path and os.path.exists(model_path):
+                forecaster.load(model_path)
+            prediction = forecaster.predict(obs.reshape(1, -1))
+            # Convert prediction to action (assuming prediction is green time in seconds)
+            green_time_pred = float(prediction[0]) if hasattr(prediction, '__len__') else float(prediction)
+            # Find closest action
+            action = np.argmin(np.abs(env.green_values - green_time_pred))
+            green_sec = env.green_values[action]
+            print(f"Recommended green time (seconds): {int(green_sec)}")
+        elif method == 'webster':
+            controller = WebsterMethod()
+            action = controller.get_action(obs)
+            green_sec = env.green_values[action]
+            print(f"Recommended green time (seconds): {int(green_sec)}")
+        else:
+            raise ValueError(f"Unknown method: {method}")
     finally:
         # Cleanup
         if env is not None:
@@ -277,8 +300,9 @@ if __name__ == "__main__":
     # Video-based inference
     vid_parser = subparsers.add_parser('video', help='Run inference using real-time video')
     vid_parser.add_argument('--config', default='configs/intersection.json', help='Traffic config JSON')
-    vid_parser.add_argument('--model', required=True, help='Path to trained DQN .npz model')
+    vid_parser.add_argument('--model', required=False, help='Path to trained model (required for DQN/GNN, optional for others)')
     vid_parser.add_argument('--video_source', required=True, help='Webcam index (e.g., 0), file path, or stream URL')
+    vid_parser.add_argument('--method', default='fuzzy', choices=['dqn', 'fuzzy', 'ga', 'pso', 'gnn', 'webster'], help='Control method to use')
     vid_parser.add_argument('--roi_config', default=None, help='Optional ROI config file')
     vid_parser.add_argument('--fps', type=float, default=15.0, help='Target processing FPS')
     vid_parser.add_argument('--width', type=int, default=640, help='Frame width')
@@ -291,10 +315,14 @@ if __name__ == "__main__":
     mode = args.mode or 'sim'
 
     if mode == 'video':
+        # Validate model requirement for methods that need it
+        if args.method in ['dqn', 'gnn'] and not args.model:
+            parser.error(f"--model is required when using method '{args.method}'")
         run_video_inference(
             cfg_path=args.config,
-            model_path=args.model,
+            model_path=args.model or 'dummy',  # Pass dummy if not required
             video_source=args.video_source,
+            method=args.method,
             roi_config=args.roi_config,
             fps=args.fps,
             width=args.width,
