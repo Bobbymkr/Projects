@@ -1,0 +1,281 @@
+{
+  "optimal_episode_counts": {
+    "DQN": {
+      "quick_testing": 100,
+      "development": 500,
+      "optimal_range": [2000, 3000],
+      "production": [3000, 5000],
+      "research_quality": [5000, 6000],
+      "convergence_threshold": 0.01,
+      "expected_performance": {
+        "initial_reward": -2000,
+        "target_reward": -150,
+        "wait_time_target": "<15s",
+        "queue_length_target": "<20 vehicles"
+      },
+      "convergence_pattern": {
+        "episodes_1_1000": "High exploration (ε = 1.0 → 0.5)",
+        "episodes_1000_3000": "Balanced exploration/exploitation",
+        "episodes_3000_5000": "Refined learning (ε = 0.3 → 0.1)",
+        "episodes_5000_6000": "Fine-tuning (ε = 0.1 → 0.01)"
+      },
+      "notes": "DQN benefits from extended training but has diminishing returns after 3000 episodes"
+    },
+    "Hierarchical RL": {
+      "quick_testing": 100,
+      "development": 300,
+      "optimal_range": [500, 1000],
+      "production": [800, 1200],
+      "research_quality": [1500, 2000],
+      "convergence_threshold": 0.01,
+      "expected_performance": {
+        "initial_reward": -200,
+        "target_reward": -85,
+        "wait_time_target": "<10s",
+        "queue_length_target": "<1 vehicle"
+      },
+      "convergence_pattern": {
+        "episodes_1_200": "Initial exploration and option learning",
+        "episodes_200_500": "Policy stabilization",
+        "episodes_500_1000": "Fine-tuning hierarchical options",
+        "episodes_1000_plus": "Marginal improvements"
+      },
+      "notes": "Best overall performer. Faster convergence due to hierarchical structure. Already achieving best results with minimal training."
+    },
+    "Model-Based RL": {
+      "quick_testing": 50,
+      "development": 100,
+      "optimal_range": [200, 400],
+      "production": [300, 500],
+      "research_quality": [500, 800],
+      "convergence_threshold": 0.001,
+      "expected_performance": {
+        "initial_reward": -200,
+        "target_reward": -108,
+        "wait_time_target": "<12s",
+        "queue_length_target": "<1 vehicle"
+      },
+      "convergence_pattern": {
+        "transitions_30": "First world model training",
+        "transitions_50_70": "Regular retraining",
+        "transitions_90_150": "Usually converges (loss stabilizes)",
+        "after_convergence": "Training stops automatically"
+      },
+      "notes": "Most sample-efficient. Automatic convergence detection. Converges in 90-150 transitions (not episodes)."
+    },
+    "Imitation Learning": {
+      "quick_testing": 50,
+      "development": 100,
+      "optimal_range": [100, 300],
+      "production": [200, 400],
+      "research_quality": [400, 600],
+      "convergence_threshold": 0.02,
+      "expected_performance": {
+        "initial_reward": "Varies",
+        "target_reward": "Varies based on expert",
+        "wait_time_target": "Matches expert performance",
+        "queue_length_target": "Matches expert performance"
+      },
+      "convergence_pattern": {
+        "episodes_1_50": "Initial behavioral cloning",
+        "episodes_50_150": "DAgger refinement",
+        "episodes_150_300": "Hybrid IL+RL fine-tuning"
+      },
+      "notes": "Requires expert demonstrations first. Performance varies based on expert quality."
+    },
+    "Transformer": {
+      "quick_testing": 200,
+      "development": 400,
+      "optimal_range": [500, 1000],
+      "production": [800, 1500],
+      "research_quality": [1500, 2500],
+      "convergence_threshold": 0.015,
+      "expected_performance": {
+        "initial_reward": -300,
+        "target_reward": -120,
+        "wait_time_target": "<12s",
+        "queue_length_target": "<15 vehicles"
+      },
+      "convergence_pattern": {
+        "episodes_1_200": "Initial temporal pattern learning",
+        "episodes_200_500": "Attention mechanism refinement",
+        "episodes_500_1000": "Sequence modeling optimization",
+        "episodes_1000_plus": "Fine-tuning"
+      },
+      "notes": "Needs more data due to transformer architecture. Good for temporal patterns."
+    },
+    "Bayesian": {
+      "quick_testing": 150,
+      "development": 300,
+      "optimal_range": [300, 600],
+      "production": [500, 800],
+      "research_quality": [800, 1200],
+      "convergence_threshold": 0.01,
+      "expected_performance": {
+        "initial_reward": -250,
+        "target_reward": -110,
+        "wait_time_target": "<12s",
+        "queue_length_target": "<15 vehicles"
+      },
+      "convergence_pattern": {
+        "episodes_1_150": "Initial uncertainty estimation",
+        "episodes_150_300": "Variational inference refinement",
+        "episodes_300_600": "Thompson sampling optimization",
+        "episodes_600_plus": "Uncertainty calibration"
+      },
+      "notes": "Uncertainty estimation requires more samples. Better uncertainty quantification."
+    },
+    "Causal": {
+      "quick_testing": 200,
+      "development": 400,
+      "optimal_range": [400, 800],
+      "production": [600, 1000],
+      "research_quality": [1000, 1500],
+      "convergence_threshold": 0.015,
+      "expected_performance": {
+        "initial_reward": -250,
+        "target_reward": -115,
+        "wait_time_target": "<12s",
+        "queue_length_target": "<15 vehicles"
+      },
+      "convergence_pattern": {
+        "episodes_1_200": "Causal graph learning",
+        "episodes_200_400": "Causal effect estimation",
+        "episodes_400_800": "Do-calculus optimization",
+        "episodes_800_plus": "Counterfactual reasoning refinement"
+      },
+      "notes": "Needs sufficient data for causal graph learning. Better interpretability."
+    },
+    "Neuro-Symbolic": {
+      "quick_testing": 150,
+      "development": 300,
+      "optimal_range": [300, 600],
+      "production": [500, 800],
+      "research_quality": [800, 1200],
+      "convergence_threshold": 0.01,
+      "expected_performance": {
+        "initial_reward": -250,
+        "target_reward": -110,
+        "wait_time_target": "<12s",
+        "queue_length_target": "<15 vehicles"
+      },
+      "convergence_pattern": {
+        "episodes_1_150": "Neural network initialization",
+        "episodes_150_300": "Symbolic rule integration",
+        "episodes_300_600": "Hybrid architecture optimization",
+        "episodes_600_plus": "Interpretability refinement"
+      },
+      "notes": "Hybrid approach, moderate training needs. Interpretable decisions."
+    },
+    "Meta-Learning (MAML)": {
+      "quick_testing": 500,
+      "development": 1000,
+      "optimal_range": [1000, 2000],
+      "production": [1500, 3000],
+      "research_quality": [3000, 5000],
+      "convergence_threshold": 0.02,
+      "expected_performance": {
+        "initial_reward": -300,
+        "target_reward": -100,
+        "wait_time_target": "<10s",
+        "queue_length_target": "<12 vehicles"
+      },
+      "convergence_pattern": {
+        "episodes_1_500": "Task distribution learning",
+        "episodes_500_1000": "Meta-parameter optimization",
+        "episodes_1000_2000": "Fast adaptation refinement",
+        "episodes_2000_plus": "Few-shot learning optimization"
+      },
+      "notes": "Needs more episodes for meta-learning. Fast adaptation to new scenarios."
+    },
+    "LLM": {
+      "quick_testing": 200,
+      "development": 500,
+      "optimal_range": [500, 1000],
+      "production": [800, 1500],
+      "research_quality": [1500, 2500],
+      "convergence_threshold": 0.015,
+      "expected_performance": {
+        "initial_reward": -300,
+        "target_reward": -120,
+        "wait_time_target": "<12s",
+        "queue_length_target": "<15 vehicles"
+      },
+      "convergence_pattern": {
+        "episodes_1_200": "Language model initialization",
+        "episodes_200_500": "State-to-text conversion learning",
+        "episodes_500_1000": "Natural language reasoning",
+        "episodes_1000_plus": "Knowledge base integration"
+      },
+      "notes": "Language model architecture needs more data. Interpretable reasoning."
+    },
+    "Diffusion": {
+      "quick_testing": 500,
+      "development": 1000,
+      "optimal_range": [1000, 2000],
+      "production": [1500, 3000],
+      "research_quality": [3000, 5000],
+      "convergence_threshold": 0.02,
+      "expected_performance": {
+        "initial_reward": -300,
+        "target_reward": -100,
+        "wait_time_target": "<10s",
+        "queue_length_target": "<12 vehicles"
+      },
+      "convergence_pattern": {
+        "episodes_1_500": "Diffusion process initialization",
+        "episodes_500_1000": "U-Net architecture training",
+        "episodes_1000_2000": "Denoising optimization",
+        "episodes_2000_plus": "Action generation refinement"
+      },
+      "notes": "Diffusion process requires extensive training. Smooth action generation."
+    }
+  },
+  "general_convergence_patterns": {
+    "episodes_1_100": "Initial exploration and basic pattern learning",
+    "episodes_100_500": "Policy stabilization and performance improvement",
+    "episodes_500_1000": "Fine-tuning and convergence to near-optimal policies",
+    "episodes_1000_plus": "Diminishing returns, marginal improvements"
+  },
+  "recommendations_by_use_case": {
+    "quick_testing_development": {
+      "episodes": [100, 200],
+      "technologies": "All (for initial validation)",
+      "time_estimate": "30 minutes - 2 hours"
+    },
+    "production_deployment": {
+      "episodes": [500, 1500],
+      "technologies": {
+        "Hierarchical RL": [800, 1200],
+        "DQN": [3000, 5000],
+        "Model-Based RL": [300, 500]
+      },
+      "time_estimate": "2-12 hours"
+    },
+    "research_quality": {
+      "episodes": [2000, 6000],
+      "technologies": "All (for publication-quality results)",
+      "time_estimate": "12-30+ hours"
+    }
+  },
+  "key_findings": [
+    "Hierarchical RL requires least training (500-1000 episodes) for best performance",
+    "DQN benefits from extended training (3000-6000 episodes) but has diminishing returns",
+    "Model-Based RL is most sample-efficient (converges in 200-400 episodes)",
+    "Meta-Learning and Diffusion Models need most training (1500-3000 episodes)",
+    "Default 200 episodes is insufficient for most technologies except Model-Based RL"
+  ],
+  "early_stopping": {
+    "enabled": true,
+    "patience": 100,
+    "min_delta": 0.01,
+    "monitor": "reward",
+    "mode": "max"
+  },
+  "performance_tracking": {
+    "metrics": ["reward", "wait_time", "queue_length", "throughput"],
+    "window_size": 50,
+    "save_frequency": 50
+  }
+}
+
