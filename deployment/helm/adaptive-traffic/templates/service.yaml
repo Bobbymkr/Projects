@@ -1,0 +1,18 @@
+# Service Template for Helm Chart
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "adaptive-traffic.fullname" . }}
+  labels:
+    {{- include "adaptive-traffic.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "adaptive-traffic.selectorLabels" . | nindent 4 }}
+

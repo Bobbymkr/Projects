@@ -1,0 +1,37 @@
+# Research & Innovation Platform Dependencies
+# Phase 5: Innovation & Research Leadership
+
+# Experiment Tracking
+mlflow>=2.8.1
+optuna>=3.4.0
+
+# Explainability
+shap>=0.43.0
+lime>=0.2.0.1
+
+# Federated Learning
+# PySyft for federated learning (optional, can be heavy)
+# pysyft>=0.8.0
+
+# Hyperparameter Optimization
+ray[tune]>=2.9.0
+
+# Research Tools
+jupyter>=1.0.0
+jupyterlab>=4.0.0
+notebook>=7.0.0
+ipywidgets>=8.1.0
+
+# Data Science
+pandas>=2.1.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+plotly>=5.18.0
+
+# Statistical Analysis
+scipy>=1.11.0
+statsmodels>=0.14.0
+
+# Visualization
+bokeh>=3.3.0
+

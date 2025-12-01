@@ -1,0 +1,83 @@
+# Kubernetes ConfigMap for Application Configuration
+# Phase 4: Infrastructure Excellence
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: adaptive-traffic-config
+  namespace: default
+  labels:
+    app: adaptive-traffic-api
+data:
+  # API Configuration
+  API_VERSION: "v1"
+  API_TITLE: "Adaptive Traffic Control API"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  ENABLE_DOCS: "false"
+  
+  # CORS Configuration
+  ENABLE_CORS: "true"
+  CORS_ORIGINS: '["https://dashboard.example.com"]'
+  
+  # Feature Flags
+  ENABLE_REDIS: "true"
+  ENABLE_CACHING: "true"
+  ENABLE_RATE_LIMITING: "true"
+  ENABLE_PROMETHEUS: "true"
+  ENABLE_SENTRY: "true"
+  
+  # Cache Configuration
+  DEFAULT_CACHE_TTL: "300"
+  RESPONSE_CACHE_TTL: "300"
+  
+  # Rate Limiting
+  RATE_LIMIT_PER_MINUTE: "100"
+  RATE_LIMIT_PER_HOUR: "1000"
+  
+  # Performance
+  MAX_REQUEST_SIZE: "10485760"  # 10MB
+  REQUEST_TIMEOUT: "30.0"
+  MAX_CONCURRENT_REQUESTS: "100"
+  
+  # WebSocket
+  WS_HEARTBEAT_INTERVAL: "30.0"
+  WS_MAX_CONNECTIONS: "1000"
+
+---
+# Redis Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: default
+data:
+  redis.conf: |
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+    appendonly yes
+    save 900 1
+    save 300 10
+    save 60 10000
+
+---
+# Prometheus Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: 'adaptive-traffic-api'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: adaptive-traffic-api
+

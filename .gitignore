@@ -18,3 +18,7 @@ artifacts/
 
 # Duplicate project directory (contains separate git repo)
 Projects/
+
+# Node modules cache (large files)
+dashboard/node_modules/.cache/
+node_modules/.cache/

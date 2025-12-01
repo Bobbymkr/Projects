@@ -1,0 +1,248 @@
+# CI/CD Pipeline for Adaptive Traffic Control System
+# Phase 4: Infrastructure Excellence
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop ]
+  release:
+    types: [ created ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # Linting and Code Quality
+  lint:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-api.txt
+          pip install -r requirements-test.txt
+          pip install black ruff mypy pylint
+      
+      - name: Run Black (code formatting)
+        run: black --check src/ tests/
+      
+      - name: Run Ruff (linter)
+        run: ruff check src/ tests/
+      
+      - name: Run MyPy (type checking)
+        run: mypy src/ --ignore-missing-imports
+      
+      - name: Run Pylint
+        run: pylint src/ --disable=all --enable=E,F --exit-zero
+
+  # API Tests
+  test-api:
+    name: API Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-api.txt
+          pip install -r requirements-test.txt
+      
+      - name: Run API unit tests
+        run: |
+          pytest tests/api/ -v --cov=src/api --cov-report=xml --cov-report=term
+        env:
+          ENABLE_REDIS: 'true'
+          REDIS_HOST: 'localhost'
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: api
+          name: api-coverage-${{ matrix.python-version }}
+
+  # Security Scanning
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Bandit (security linter)
+        run: |
+          pip install bandit
+          bandit -r src/ -f json -o bandit-report.json || true
+      
+      - name: Run Safety (dependency checker)
+        run: |
+          pip install safety
+          safety check --json || true
+      
+      - name: Run Trivy (vulnerability scanner)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Build Docker Image
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [lint, test-api]
+    if: github.event_name != 'pull_request'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+        if: github.event_name != 'pull_request'
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: adaptive-traffic-api
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./deployment/docker/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: https://staging-api.adaptive-traffic.example.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to staging
+        run: |
+          echo "Deploying to staging environment..."
+          # Add deployment commands here
+          # kubectl apply -f deployment/kubernetes/staging/
+          # or docker-compose -f deployment/docker/docker-compose.staging.yml up -d
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'release' && github.event.action == 'created'
+    environment:
+      name: production
+      url: https://api.adaptive-traffic.example.com
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production environment..."
+          # Add deployment commands here
+          # kubectl apply -f deployment/kubernetes/production/
+
+  # Performance Tests
+  performance:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-test.txt
+      
+      - name: Start services
+        run: |
+          docker-compose -f deployment/docker/docker-compose.yml up -d
+          sleep 30  # Wait for services to start
+      
+      - name: Run load tests
+        run: |
+          locust -f tests/api/load_test.py \
+            --headless \
+            -u 100 -r 10 -t 5m \
+            --host http://localhost:8000 \
+            --html performance-report.html
+      
+      - name: Upload performance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: performance-report.html
+

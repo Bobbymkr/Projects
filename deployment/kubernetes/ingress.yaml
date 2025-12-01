@@ -1,0 +1,49 @@
+# Kubernetes Ingress Configuration
+# Phase 4: Infrastructure Excellence
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: adaptive-traffic-ingress
+  namespace: default
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "5"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+spec:
+  tls:
+  - hosts:
+    - api.adaptive-traffic.example.com
+    - staging-api.adaptive-traffic.example.com
+    secretName: adaptive-traffic-tls
+  rules:
+  # Production API
+  - host: api.adaptive-traffic.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: adaptive-traffic-api-service
+            port:
+              number: 80
+  # Staging API
+  - host: staging-api.adaptive-traffic.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: adaptive-traffic-api-service
+            port:
+              number: 80
+

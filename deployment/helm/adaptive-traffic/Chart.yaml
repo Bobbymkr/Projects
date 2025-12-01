@@ -1,0 +1,30 @@
+# Helm Chart for Adaptive Traffic Control System
+# Phase 4: Infrastructure Excellence
+
+apiVersion: v2
+name: adaptive-traffic
+description: A Helm chart for Adaptive Traffic Control API
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - traffic
+  - signal-control
+  - api
+  - fastapi
+maintainers:
+  - name: Adaptive Traffic Team
+home: https://github.com/adaptive-traffic/api
+sources:
+  - https://github.com/adaptive-traffic/api
+
+dependencies:
+  - name: postgresql
+    version: "12.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: postgresql.enabled
+  - name: redis
+    version: "18.x"
+    repository: "https://charts.bitnami.com/bitnami"
+    condition: redis.enabled
+
