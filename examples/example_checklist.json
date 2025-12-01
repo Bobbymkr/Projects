@@ -1,0 +1,99 @@
+{
+  "_description": "Example checklist for a developing city with mixed traffic",
+  "_region": "Example City, Example Country",
+  
+  "infrastructure": {
+    "power": {
+      "availability_hours": 22.0,
+      "outage_frequency": "occasional",
+      "backup_available": true,
+      "power_quality": "stable"
+    },
+    "network": {
+      "type": "4g",
+      "bandwidth_mbps": 25.0,
+      "reliability_percent": 96.0,
+      "latency_ms": 50.0,
+      "data_caps": false
+    },
+    "hardware": {
+      "cpu_cores": 4,
+      "ram_gb": 8,
+      "gpu_available": false,
+      "storage_gb": 128,
+      "edge_device_options": true
+    },
+    "cameras": {
+      "quality": "1080p",
+      "existing_cctv": true,
+      "ip_cameras": true,
+      "camera_count": 4,
+      "maintenance_access": true
+    }
+  },
+  
+  "traffic": {
+    "patterns": {
+      "peak_hours_defined": true,
+      "morning_peak": "7:00-10:00",
+      "evening_peak": "17:00-20:00",
+      "historical_data_months": 3,
+      "predictable": false,
+      "seasonal_variations": true,
+      "special_events_frequent": true,
+      "weekend_patterns_different": true
+    },
+    "volume": {
+      "average_queue_length": 35.0,
+      "max_queue_length": 60.0,
+      "peak_hour_vehicles_per_hour": 1200,
+      "off_peak_vehicles_per_hour": 400
+    },
+    "vehicle_mix_diverse": true,
+    "vehicle_distribution": {
+      "cars": 0.3,
+      "motorcycles": 0.35,
+      "auto_rickshaws": 0.15,
+      "buses": 0.08,
+      "trucks": 0.07,
+      "bicycles": 0.05
+    },
+    "lane_discipline_good": false,
+    "pedestrian_volume": "high",
+    "jaywalking_frequent": true
+  },
+  
+  "deployment": {
+    "num_intersections": 5,
+    "budget_per_intersection": 20000.0,
+    "total_budget": 100000.0,
+    "explainability_required": true,
+    "regulatory_compliance_strict": false,
+    "maintenance_team_available": true,
+    "ml_team_available": false,
+    "traffic_engineer_available": true,
+    "edge_deployment_preferred": true,
+    "multi_intersection_coordination": false,
+    "real_time_critical": true,
+    "latency_requirement_ms": 100
+  },
+  
+  "regional_specifics": {
+    "traffic_direction": "left-hand",
+    "climate": "tropical",
+    "monsoon_season": true,
+    "festival_traffic": true,
+    "industrial_areas_nearby": true
+  },
+  
+  "custom_requirements": {
+    "pedestrian_priority": true,
+    "emergency_vehicle_preemption": false,
+    "bicycle_lanes": false,
+    "public_transport_priority": false,
+    "special_phases_needed": false
+  },
+  
+  "_notes": "This is an example checklist. Fill in with your actual regional requirements."
+}
+

@@ -1,0 +1,154 @@
+{
+  "_description": "Configuration specifically designed for Surat, Gujarat, India - A high-density urban city with mixed traffic patterns",
+  "_region_type": "High-Density Mixed Traffic - Indian City",
+  "_city": "Surat, Gujarat, India",
+  "_city_characteristics": {
+    "population": "~4.5 million (2021)",
+    "economic_activity": "Diamond cutting, textile manufacturing, industrial hub",
+    "traffic_density": "Very high - rapid urbanization and economic growth",
+    "smart_city_status": "Selected under Smart Cities Mission",
+    "infrastructure_level": "Developing - improving with smart city initiatives"
+  },
+  
+  "num_lanes": 4,
+  "phase_lanes": [[0, 1], [2, 3]],
+  "_phase_note": "Standard 4-way intersection. May need additional phases for complex intersections in industrial areas",
+  
+  "min_green": 10,
+  "max_green": 90,
+  "_timing_note": "Longer green times needed for mixed traffic clearance, especially during peak hours in industrial zones",
+  "green_step": 5,
+  "cycle_yellow": 4,
+  "_yellow_note": "Longer yellow time for safety with mixed vehicle types and aggressive driving patterns",
+  "cycle_all_red": 2,
+  "_all_red_note": "Longer clearance time for safety with mixed traffic, poor lane discipline, and high pedestrian activity",
+  
+  "arrival_rates": [0.55, 0.5, 0.6, 0.45],
+  "_arrival_rates_note": "High arrival rates typical of dense urban areas. Adjust based on specific intersection: higher in industrial areas (Hazira), textile markets, and diamond district",
+  
+  "queue_capacity": 65,
+  "_queue_capacity_note": "Higher capacity needed due to: 1) Small vehicles (motorcycles 30-40%, auto-rickshaws 15-20%), 2) Poor lane discipline, 3) High traffic density in commercial areas",
+  
+  "reward_weights": {
+    "queue": -1.6,
+    "wait_penalty": -0.18,
+    "efficiency": 0.025,
+    "max_queue": -0.12
+  },
+  "_reward_note": "Higher queue and wait penalties due to severe congestion impact in mixed traffic scenarios. Efficiency reward encourages smooth flow despite chaotic patterns",
+  
+  "_vision_config": {
+    "model": "YOLOv8-small",
+    "confidence_threshold": 0.35,
+    "_confidence_note": "Lower threshold to detect small vehicles (motorcycles, auto-rickshaws, bicycles) and handle overlapping/irregular positioning",
+    "nms_threshold": 0.5,
+    "vehicle_types": ["car", "motorcycle", "auto-rickshaw", "bus", "truck", "bicycle", "pedestrian", "handcart"],
+    "_detection_note": "Must detect diverse vehicle types including 2-wheelers (30-40% of traffic), 3-wheelers (15-20%), and handle irregular positioning due to poor lane discipline"
+  },
+  
+  "_regional_adaptations": {
+    "traffic_direction": "left-hand drive",
+    "vehicle_mix": {
+      "motorcycles": "30-40% (very high)",
+      "auto_rickshaws": "15-20%",
+      "cars": "25-30%",
+      "buses": "5-8%",
+      "trucks": "5-10%",
+      "bicycles": "3-5%",
+      "pedestrians": "High volume, especially near markets and industrial areas"
+    },
+    "lane_discipline": "Poor - vehicles don't stay in lanes, frequent lane changes, aggressive driving",
+    "detection_challenge": "Overlapping vehicles, irregular positioning, vehicles in wrong lanes, high density",
+    "traffic_behavior": "Aggressive, unpredictable patterns, especially during peak hours (7-10 AM, 5-8 PM)",
+    "peak_hours": {
+      "morning": "7:00 AM - 10:00 AM (industrial workers, office commuters)",
+      "evening": "5:00 PM - 8:00 PM (return commute, market activity)",
+      "special_events": "Festivals, diamond exhibitions, textile trade shows cause sudden traffic spikes"
+    },
+    "infrastructure": {
+      "power": "Generally stable but occasional outages - edge computing recommended",
+      "network": "Improving with smart city initiatives - 4G/5G available",
+      "cctv": "Existing CCTV infrastructure can be leveraged",
+      "deployment": "Edge computing preferred for reliability, with cloud backup"
+    },
+    "special_considerations": {
+      "industrial_areas": "Hazira Industrial Area has heavy truck traffic - may need separate configuration",
+      "commercial_zones": "Textile markets and diamond district have high pedestrian and vehicle density",
+      "festivals": "Gujarati festivals (Navratri, Diwali) cause significant traffic pattern changes",
+      "monsoon": "Heavy rains (June-September) affect traffic flow and visibility"
+    }
+  },
+  
+  "_recommended_technology_stack": {
+    "primary_control": "Fuzzy Logic Controller",
+    "_control_rationale": "Best performance (8.51s wait time), interpretable, robust to uncertainty, no training data needed, handles chaotic traffic patterns",
+    "vision": "YOLOv8-small with custom training for Indian vehicles",
+    "_vision_rationale": "Lightweight model suitable for edge deployment, can be fine-tuned on local traffic footage",
+    "forecasting": "Optional - LSTM only if coordinating 5+ intersections and have 6+ months of data",
+    "_forecasting_note": "Traffic patterns less predictable due to festivals and events. Skip for single intersections.",
+    "deployment": "Edge computing with cloud backup",
+    "_deployment_rationale": "Reliable operation during power/network issues, lower latency, cost-effective for Indian market",
+    "cost_estimate": "$15K-$25K per intersection (edge deployment, YOLOv8-small, Fuzzy Logic)"
+  },
+  
+  "_deployment_guidance": {
+    "phase_1": {
+      "scope": "Single intersection pilot",
+      "duration": "3-6 months",
+      "focus": "Validate vision detection, tune fuzzy logic parameters, measure baseline performance"
+    },
+    "phase_2": {
+      "scope": "5-10 key intersections",
+      "duration": "6-12 months",
+      "focus": "Multi-intersection coordination, optimize for Surat-specific patterns, integrate with smart city infrastructure"
+    },
+    "phase_3": {
+      "scope": "City-wide deployment (50+ intersections)",
+      "duration": "12-24 months",
+      "focus": "Full integration with Surat Smart City systems, advanced analytics, public transport priority"
+    },
+    "key_intersections": {
+      "high_priority": [
+        "Hazira Industrial Area intersections",
+        "Textile market areas",
+        "Diamond district intersections",
+        "Railway station approach roads",
+        "Airport connectivity routes"
+      ]
+    }
+  },
+  
+  "_tuning_parameters": {
+    "initial_deployment": "Use these parameters as starting point",
+    "monitoring_period": "Monitor for 2-4 weeks after deployment",
+    "adjustments_needed": [
+      "Measure actual arrival rates per lane and adjust",
+      "Observe queue lengths and adjust queue_capacity",
+      "Fine-tune confidence_threshold based on detection accuracy",
+      "Adjust reward_weights based on local priorities (congestion vs wait time)",
+      "Tune min_green/max_green based on safety observations"
+    ],
+    "seasonal_adjustments": {
+      "monsoon": "Increase cycle_all_red, lower confidence_threshold for reduced visibility",
+      "festival_season": "Increase queue_capacity, adjust arrival_rates for peak events",
+      "normal_season": "Use standard parameters"
+    }
+  },
+  
+  "_additional_features": {
+    "pedestrian_phases": "High pedestrian volume near markets and industrial areas - dedicated phases needed",
+    "bicycle_integration": "Bicycle lanes present in some areas - detection and priority signals",
+    "public_transport": "BRTS (Bus Rapid Transit System) integration for priority signals",
+    "emergency_vehicles": "GPS-based preemption systems for ambulances and fire trucks",
+    "coordination": "Multi-intersection coordination essential for arterial roads",
+    "smart_city_integration": "Integration with Surat Smart City Command and Control Center"
+  },
+  
+  "_references": {
+    "traffic_study": "Conduct local traffic study to validate arrival rates and queue capacities",
+    "camera_positioning": "Leverage existing CCTV infrastructure where possible",
+    "stakeholder_engagement": "Coordinate with Surat Municipal Corporation and Smart City SPV",
+    "compliance": "Ensure compliance with Indian traffic regulations and IRC (Indian Roads Congress) standards"
+  }
+}
+
