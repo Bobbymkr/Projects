@@ -1,0 +1,35 @@
+{
+  "_description": "Configuration for left-hand drive countries (UK, India, Japan, Australia, etc.)",
+  "_region_type": "Left-Hand Drive",
+  "_example_countries": ["UK", "India", "Japan", "Australia", "South Africa", "Thailand"],
+  
+  "num_lanes": 4,
+  "phase_lanes": [[0, 1], [2, 3]],
+  "_phase_note": "Standard 4-way intersection. Phase logic may need adjustment for left-hand traffic turning movements",
+  
+  "min_green": 5,
+  "max_green": 60,
+  "green_step": 5,
+  "cycle_yellow": 3,
+  "cycle_all_red": 1,
+  
+  "arrival_rates": [0.3, 0.25, 0.35, 0.2],
+  "_arrival_rates_note": "Adjust based on actual traffic measurements. Left-hand drive may have different directional patterns",
+  
+  "queue_capacity": 40,
+  
+  "reward_weights": {
+    "queue": -1.0,
+    "wait_penalty": -0.1,
+    "efficiency": 0.01,
+    "max_queue": -0.05
+  },
+  
+  "_regional_adaptations": {
+    "traffic_direction": "left-hand",
+    "turning_priority": "right-turn priority (equivalent to left-turn in right-hand drive)",
+    "phase_adjustments": "May need protected right-turn phases",
+    "camera_mounting": "Consider camera angle for left-hand traffic flow"
+  }
+}
+

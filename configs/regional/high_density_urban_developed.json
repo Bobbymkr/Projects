@@ -1,0 +1,64 @@
+{
+  "_description": "Configuration for high-density urban areas in developed regions (e.g., New York, London, Tokyo)",
+  "_region_type": "High-Density Urban - Developed",
+  "_example_cities": ["New York, USA", "London, UK", "Tokyo, Japan", "Singapore", "Zurich, Switzerland"],
+  
+  "num_lanes": 4,
+  "phase_lanes": [[0, 1], [2, 3]],
+  "_phase_note": "May need additional phases for complex intersections",
+  
+  "min_green": 10,
+  "max_green": 90,
+  "_timing_note": "Longer green times for high traffic volumes",
+  "green_step": 5,
+  "cycle_yellow": 3,
+  "cycle_all_red": 1,
+  
+  "arrival_rates": [0.6, 0.55, 0.5, 0.45],
+  "_arrival_rates_note": "High arrival rates typical of dense urban centers",
+  
+  "queue_capacity": 60,
+  "_queue_capacity_note": "Higher capacity for dense traffic",
+  
+  "reward_weights": {
+    "queue": -1.5,
+    "wait_penalty": -0.2,
+    "efficiency": 0.03,
+    "max_queue": -0.1
+  },
+  "_reward_note": "Higher weights for congestion and wait time reduction in high-density areas",
+  
+  "_vision_config": {
+    "model": "YOLOv8-large or medium",
+    "confidence_threshold": 0.5,
+    "nms_threshold": 0.5,
+    "vehicle_types": ["car", "truck", "bus", "bicycle", "pedestrian", "motorcycle"],
+    "_detection_note": "High accuracy needed, can use larger model with good infrastructure"
+  },
+  
+  "_regional_adaptations": {
+    "traffic_volume": "Very high",
+    "peak_hours": "Extended peak periods, all-day traffic",
+    "vehicle_mix": "Diverse but generally orderly",
+    "lane_discipline": "Good",
+    "traffic_patterns": "Predictable with some variability",
+    "infrastructure": "Excellent - reliable power, high-speed network, cloud-ready"
+  },
+  
+  "_recommended_technology_stack": {
+    "primary_control": "DQN or Fuzzy Logic (both viable)",
+    "vision": "YOLOv8-medium or large",
+    "forecasting": "LSTM or GNN (for multi-intersection coordination)",
+    "deployment": "Cloud or Hybrid",
+    "rationale": "Excellent infrastructure allows for advanced ML approaches, multi-intersection coordination valuable"
+  },
+  
+  "_additional_features": {
+    "pedestrian_phases": "High pedestrian volume - dedicated phases needed",
+    "bicycle_integration": "Bicycle lanes and signals",
+    "public_transport": "Bus/transit priority systems",
+    "emergency_vehicles": "GPS-based preemption systems",
+    "coordination": "Multi-intersection coordination essential"
+  }
+}
+

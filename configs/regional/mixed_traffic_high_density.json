@@ -1,0 +1,58 @@
+{
+  "_description": "Configuration for high-density mixed traffic scenarios (e.g., Indian cities, Southeast Asia)",
+  "_region_type": "Mixed Traffic - High Density",
+  "_example_regions": ["Mumbai, India", "Bangkok, Thailand", "Jakarta, Indonesia", "Manila, Philippines"],
+  
+  "num_lanes": 4,
+  "phase_lanes": [[0, 1], [2, 3]],
+  
+  "min_green": 10,
+  "max_green": 90,
+  "_timing_note": "Longer green times needed for mixed traffic clearance",
+  "green_step": 5,
+  "cycle_yellow": 4,
+  "_yellow_note": "Longer yellow time for mixed vehicle types",
+  "cycle_all_red": 2,
+  "_all_red_note": "Longer clearance time for safety with mixed traffic",
+  
+  "arrival_rates": [0.6, 0.55, 0.5, 0.45],
+  "_arrival_rates_note": "High arrival rates typical of dense urban areas with mixed traffic",
+  
+  "queue_capacity": 60,
+  "_queue_capacity_note": "Higher capacity needed due to smaller vehicles (motorcycles, 3-wheelers) and poor lane discipline",
+  
+  "reward_weights": {
+    "queue": -1.5,
+    "wait_penalty": -0.15,
+    "efficiency": 0.02,
+    "max_queue": -0.1
+  },
+  "_reward_note": "Higher queue penalty due to congestion impact in mixed traffic scenarios",
+  
+  "_vision_config": {
+    "model": "YOLOv8-small",
+    "confidence_threshold": 0.35,
+    "_confidence_note": "Lower threshold to detect small vehicles (motorcycles, 3-wheelers)",
+    "nms_threshold": 0.5,
+    "vehicle_types": ["car", "motorcycle", "auto-rickshaw", "bus", "truck", "bicycle", "pedestrian"],
+    "_detection_note": "Must detect diverse vehicle types including 2-wheelers and 3-wheelers"
+  },
+  
+  "_regional_adaptations": {
+    "vehicle_mix": "High percentage of motorcycles (30-50%), 3-wheelers (10-20%), mixed with cars",
+    "lane_discipline": "Poor - vehicles don't stay in lanes",
+    "detection_challenge": "Overlapping vehicles, irregular positioning",
+    "solution": "Lower confidence threshold, custom YOLO training for regional vehicles",
+    "traffic_behavior": "Aggressive, unpredictable patterns",
+    "infrastructure": "Often limited - use edge computing, minimal cloud dependency"
+  },
+  
+  "_recommended_technology_stack": {
+    "primary_control": "Fuzzy Logic Controller",
+    "vision": "YOLOv8-small with custom training",
+    "forecasting": "None (unpredictable patterns)",
+    "deployment": "Edge computing",
+    "rationale": "Simple, robust, handles uncertainty well, no training data needed"
+  }
+}
+
