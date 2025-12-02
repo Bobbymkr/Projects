@@ -1,0 +1,29 @@
+# Kubernetes Namespaces
+# Phase 4: Infrastructure Excellence
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: adaptive-traffic
+  labels:
+    name: adaptive-traffic
+    environment: production
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    purpose: observability
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: staging
+  labels:
+    name: staging
+    environment: staging
+

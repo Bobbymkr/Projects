@@ -1,0 +1,112 @@
+# API Alert Rules
+# Phase 1.2: Monitoring & Observability
+
+groups:
+  - name: api_health
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighAPIErrorRate
+        expr: rate(api_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API error rate detected"
+          description: "API error rate is {{ $value }} errors/second for the last 5 minutes"
+
+      # Slow API responses
+      - alert: SlowAPIResponse
+        expr: histogram_quantile(0.99, api_response_time_seconds) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API response time is slow"
+          description: "99th percentile API response time is {{ $value }}s"
+
+      # API server down
+      - alert: APIServerDown
+        expr: up{job="adaptive-traffic-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API server is down"
+          description: "API server has been down for more than 1 minute"
+
+  - name: traffic_system
+    interval: 30s
+    rules:
+      # High queue lengths
+      - alert: HighQueueLength
+        expr: queue_length > 50
+        for: 10m
+        labels:
+          severity: warning
+          component: traffic
+        annotations:
+          summary: "High queue length at intersection"
+          description: "Queue length at {{ $labels.intersection_id }} lane {{ $labels.lane_id }} is {{ $value }} vehicles"
+
+      # Long wait times
+      - alert: LongWaitTime
+        expr: histogram_quantile(0.95, average_wait_time_seconds) > 60
+        for: 10m
+        labels:
+          severity: warning
+          component: traffic
+        annotations:
+          summary: "Long wait times detected"
+          description: "95th percentile wait time at {{ $labels.intersection_id }} is {{ $value }}s"
+
+      # No active intersections
+      - alert: NoActiveIntersections
+        expr: active_intersections == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: traffic
+        annotations:
+          summary: "No active intersections"
+          description: "No active intersections detected for 5 minutes"
+
+  - name: system_resources
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: system_cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% for more than 10 minutes"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: system_memory_usage_percent > 85
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}% for more than 10 minutes"
+
+      # Too many WebSocket connections
+      - alert: TooManyWebSocketConnections
+        expr: active_websocket_connections > 900
+        for: 5m
+        labels:
+          severity: warning
+          component: websocket
+        annotations:
+          summary: "High number of WebSocket connections"
+          description: "{{ $value }} active WebSocket connections (limit: 1000)"
+

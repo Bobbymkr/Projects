@@ -1,0 +1,54 @@
+{
+  "_description": "Configuration for low-density suburban areas with moderate traffic",
+  "_region_type": "Low-Density Suburban",
+  "_example_areas": ["Suburban USA", "Suburban Europe", "Smaller cities"],
+  
+  "num_lanes": 4,
+  "phase_lanes": [[0, 1], [2, 3]],
+  
+  "min_green": 5,
+  "max_green": 45,
+  "_timing_note": "Shorter max green time sufficient for lower traffic volumes",
+  "green_step": 5,
+  "cycle_yellow": 3,
+  "cycle_all_red": 1,
+  
+  "arrival_rates": [0.2, 0.15, 0.18, 0.12],
+  "_arrival_rates_note": "Lower arrival rates typical of suburban areas",
+  
+  "queue_capacity": 30,
+  "_queue_capacity_note": "Lower capacity sufficient for suburban traffic volumes",
+  
+  "reward_weights": {
+    "queue": -0.8,
+    "wait_penalty": -0.08,
+    "efficiency": 0.01,
+    "max_queue": -0.03
+  },
+  "_reward_note": "Lower weights as congestion is less critical in suburban areas",
+  
+  "_vision_config": {
+    "model": "YOLOv8-small or nano",
+    "confidence_threshold": 0.5,
+    "nms_threshold": 0.5,
+    "vehicle_types": ["car", "truck", "bicycle", "pedestrian"],
+    "_detection_note": "Simpler vehicle mix, can use smaller model"
+  },
+  
+  "_regional_adaptations": {
+    "traffic_volume": "Low to moderate",
+    "peak_hours": "Morning and evening commute only",
+    "vehicle_mix": "Primarily passenger vehicles",
+    "traffic_patterns": "Predictable, follows daily commute patterns",
+    "infrastructure": "Variable - may have limited connectivity"
+  },
+  
+  "_recommended_technology_stack": {
+    "primary_control": "Fuzzy Logic or Webster's Method",
+    "vision": "YOLOv8-small or nano",
+    "forecasting": "Optional - simple LSTM if needed",
+    "deployment": "Edge computing (cost-effective)",
+    "rationale": "Simple solution sufficient for lower traffic volumes, cost-effective"
+  }
+}
+

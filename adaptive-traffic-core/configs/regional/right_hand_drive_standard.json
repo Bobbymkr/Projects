@@ -1,0 +1,52 @@
+{
+  "_description": "Standard configuration for right-hand drive countries (USA, Canada, Europe, China, etc.)",
+  "_region_type": "Right-Hand Drive - Standard",
+  "_example_countries": ["USA", "Canada", "Germany", "France", "China", "Brazil"],
+  
+  "num_lanes": 4,
+  "phase_lanes": [[0, 1], [2, 3]],
+  "_phase_note": "Standard 4-way intersection for right-hand traffic",
+  
+  "min_green": 5,
+  "max_green": 60,
+  "green_step": 5,
+  "cycle_yellow": 3,
+  "cycle_all_red": 1,
+  
+  "arrival_rates": [0.3, 0.25, 0.35, 0.2],
+  "_arrival_rates_note": "Adjust based on actual traffic measurements for the specific intersection",
+  
+  "queue_capacity": 40,
+  
+  "reward_weights": {
+    "queue": -1.0,
+    "wait_penalty": -0.1,
+    "efficiency": 0.01,
+    "max_queue": -0.05
+  },
+  
+  "_vision_config": {
+    "model": "YOLOv8-medium",
+    "confidence_threshold": 0.5,
+    "nms_threshold": 0.5,
+    "vehicle_types": ["car", "truck", "bus", "bicycle", "pedestrian"],
+    "_detection_note": "Standard vehicle types, good lane discipline"
+  },
+  
+  "_regional_adaptations": {
+    "traffic_direction": "right-hand",
+    "lane_discipline": "Good - vehicles generally stay in lanes",
+    "vehicle_mix": "Primarily cars and trucks, some buses",
+    "traffic_behavior": "Generally orderly, predictable patterns",
+    "infrastructure": "Usually good - can support cloud or hybrid deployment"
+  },
+  
+  "_recommended_technology_stack": {
+    "primary_control": "Fuzzy Logic or DQN (if data available)",
+    "vision": "YOLOv8-medium",
+    "forecasting": "LSTM (if coordinating multiple intersections)",
+    "deployment": "Cloud or Hybrid",
+    "rationale": "Good infrastructure allows for advanced features if needed"
+  }
+}
+

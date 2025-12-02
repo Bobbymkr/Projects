@@ -1,80 +1,63 @@
-# API Alert Rules
-# Phase 1.2: Monitoring & Observability
+# Week 6: Prometheus Alert Rules
 
 groups:
-  - name: api_health
+  - name: api_alerts
     interval: 30s
     rules:
+      # High latency alert
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, http_request_duration_seconds_bucket) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency detected"
+          description: "95th percentile latency is {{ $value }}s (threshold: 0.1s)"
+
       # High error rate
-      - alert: HighAPIErrorRate
-        expr: rate(api_errors_total[5m]) > 0.1
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) > 0.05
         for: 5m
         labels:
-          severity: warning
-          component: api
+          severity: critical
         annotations:
-          summary: "High API error rate detected"
-          description: "API error rate is {{ $value }} errors/second for the last 5 minutes"
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} (threshold: 0.05)"
 
-      # Slow API responses
-      - alert: SlowAPIResponse
-        expr: histogram_quantile(0.99, api_response_time_seconds) > 1.0
-        for: 5m
-        labels:
-          severity: warning
-          component: api
-        annotations:
-          summary: "API response time is slow"
-          description: "99th percentile API response time is {{ $value }}s"
-
-      # API server down
-      - alert: APIServerDown
+      # Service down
+      - alert: ServiceDown
         expr: up{job="adaptive-traffic-api"} == 0
         for: 1m
         labels:
           severity: critical
-          component: api
         annotations:
-          summary: "API server is down"
-          description: "API server has been down for more than 1 minute"
+          summary: "Service is down"
+          description: "Adaptive Traffic API service is not responding"
 
-  - name: traffic_system
+  - name: traffic_alerts
     interval: 30s
     rules:
-      # High queue lengths
-      - alert: HighQueueLength
-        expr: queue_length > 50
+      # High wait time
+      - alert: HighWaitTime
+        expr: traffic_vehicle_wait_time_seconds > 60
         for: 10m
         labels:
           severity: warning
-          component: traffic
         annotations:
-          summary: "High queue length at intersection"
-          description: "Queue length at {{ $labels.intersection_id }} lane {{ $labels.lane_id }} is {{ $value }} vehicles"
+          summary: "High vehicle wait time"
+          description: "Average wait time is {{ $value }}s (threshold: 60s)"
 
-      # Long wait times
-      - alert: LongWaitTime
-        expr: histogram_quantile(0.95, average_wait_time_seconds) > 60
-        for: 10m
-        labels:
-          severity: warning
-          component: traffic
-        annotations:
-          summary: "Long wait times detected"
-          description: "95th percentile wait time at {{ $labels.intersection_id }} is {{ $value }}s"
-
-      # No active intersections
-      - alert: NoActiveIntersections
-        expr: active_intersections == 0
+      # Queue overflow
+      - alert: QueueOverflow
+        expr: traffic_queue_length > 50
         for: 5m
         labels:
-          severity: critical
-          component: traffic
+          severity: warning
         annotations:
-          summary: "No active intersections"
-          description: "No active intersections detected for 5 minutes"
+          summary: "Queue overflow detected"
+          description: "Queue length is {{ $value }} (threshold: 50)"
 
-  - name: system_resources
+  - name: system_alerts
     interval: 30s
     rules:
       # High CPU usage
@@ -83,10 +66,9 @@ groups:
         for: 10m
         labels:
           severity: warning
-          component: system
         annotations:
           summary: "High CPU usage"
-          description: "CPU usage is {{ $value }}% for more than 10 minutes"
+          description: "CPU usage is {{ $value }}% (threshold: 80%)"
 
       # High memory usage
       - alert: HighMemoryUsage
@@ -94,19 +76,16 @@ groups:
         for: 10m
         labels:
           severity: warning
-          component: system
         annotations:
           summary: "High memory usage"
-          description: "Memory usage is {{ $value }}% for more than 10 minutes"
+          description: "Memory usage is {{ $value }}% (threshold: 85%)"
 
-      # Too many WebSocket connections
-      - alert: TooManyWebSocketConnections
-        expr: active_websocket_connections > 900
+      # Low disk space
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
         for: 5m
         labels:
-          severity: warning
-          component: websocket
+          severity: critical
         annotations:
-          summary: "High number of WebSocket connections"
-          description: "{{ $value }} active WebSocket connections (limit: 1000)"
-
+          summary: "Low disk space"
+          description: "Disk space is below 10%"

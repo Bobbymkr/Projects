@@ -1,0 +1,4 @@
+# Adaptive Traffic Common - Base dependencies
+numpy>=1.26.0
+pydantic>=2.7.0
+

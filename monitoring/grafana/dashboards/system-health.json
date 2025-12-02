@@ -1,89 +1,49 @@
 {
   "dashboard": {
     "title": "System Health Dashboard",
-    "tags": ["system", "health", "adaptive-traffic"],
+    "tags": ["system", "health"],
     "timezone": "browser",
-    "schemaVersion": 37,
-    "version": 1,
-    "refresh": "30s",
     "panels": [
       {
-        "id": 1,
         "title": "CPU Usage",
-        "type": "gauge",
-        "targets": [
-          {
-            "expr": "system_cpu_usage_percent"
-          }
-        ],
-        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
-        "thresholds": {
-          "steps": [
-            {"value": 0, "color": "green"},
-            {"value": 70, "color": "yellow"},
-            {"value": 85, "color": "red"}
-          ]
-        }
-      },
-      {
-        "id": 2,
-        "title": "Memory Usage",
-        "type": "gauge",
-        "targets": [
-          {
-            "expr": "system_memory_usage_percent"
-          }
-        ],
-        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
-        "thresholds": {
-          "steps": [
-            {"value": 0, "color": "green"},
-            {"value": 75, "color": "yellow"},
-            {"value": 90, "color": "red"}
-          ]
-        }
-      },
-      {
-        "id": 3,
-        "title": "WebSocket Connections",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "active_websocket_connections"
-          }
-        ],
-        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0}
-      },
-      {
-        "id": 4,
-        "title": "System Resource Usage Over Time",
-        "type": "graph",
         "targets": [
           {
             "expr": "system_cpu_usage_percent",
-            "legendFormat": "CPU %"
-          },
-          {
-            "expr": "system_memory_usage_percent",
-            "legendFormat": "Memory %"
+            "legendFormat": "CPU Usage %"
           }
         ],
-        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6}
+        "type": "graph"
       },
       {
-        "id": 5,
-        "title": "Service Status",
-        "type": "table",
+        "title": "Memory Usage",
         "targets": [
           {
-            "expr": "up",
-            "format": "table",
-            "legendFormat": "{{job}}"
+            "expr": "system_memory_usage_percent",
+            "legendFormat": "Memory Usage %"
           }
         ],
-        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 14}
+        "type": "graph"
+      },
+      {
+        "title": "API Request Rate",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ],
+        "type": "graph"
+      },
+      {
+        "title": "Error Rate",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m])",
+            "legendFormat": "Error Rate"
+          }
+        ],
+        "type": "graph"
       }
     ]
   }
 }
-

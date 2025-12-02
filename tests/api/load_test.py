@@ -1,12 +1,20 @@
 """
-Load Testing Script for API Endpoints using Locust.
+Enhanced Load Testing Script for API Endpoints using Locust.
 
-Tests API performance under various load conditions.
+Week 3: Enhanced load testing with stress test scenarios:
+- Gradual load increase (0 → 1000 req/s)
+- Spike test (sudden 10x traffic)
+- Soak test (24-hour sustained load)
+
+Usage:
+    locust -f tests/api/load_test.py --users 1000 --spawn-rate 50 --run-time 1h
+    locust -f tests/api/load_test.py --users 100 --spawn-rate 10 --run-time 10m  # Spike test
 """
 
-from locust import HttpUser, task, between
+from locust import HttpUser, task, between, events
 from typing import Dict
 import random
+import time
 
 
 class TrafficControlAPIUser(HttpUser):
@@ -19,7 +27,7 @@ class TrafficControlAPIUser(HttpUser):
     - Fetching metrics
     """
     
-    wait_time = between(1, 3)  # Wait 1-3 seconds between tasks
+    wait_time = between(0.1, 0.5)  # Wait 100-500ms between tasks (higher frequency for stress testing)
     
     def on_start(self):
         """Called when a user starts."""

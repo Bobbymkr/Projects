@@ -1,0 +1,16 @@
+# Adaptive Traffic API - API dependencies
+fastapi>=0.104.0
+uvicorn>=0.24.0
+pydantic>=2.7.0
+sqlalchemy>=2.0.0
+redis>=5.0.0
+python-jose>=3.3.0
+passlib>=1.7.4
+python-multipart>=0.0.6
+websockets>=12.0
+starlette>=0.27.0
+
+# Local dependencies (install from parent directory)
+# adaptive-traffic-core
+# adaptive-traffic-common
+

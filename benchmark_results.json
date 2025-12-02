@@ -1,0 +1,63 @@
+{
+  "benchmark_date": "2025-12-01T13:55:28.275853",
+  "config_path": "configs/intersection.json",
+  "num_test_episodes": 50,
+  "results": {
+    "fuzzy_logic": {
+      "name": "Fuzzy Logic",
+      "avg_wait_time": 0.0,
+      "std_wait_time": 0.0,
+      "min_wait_time": 0.0,
+      "max_wait_time": 0.0,
+      "avg_queue_length": 0.30805426836013794,
+      "avg_reward": -111.07600823136478,
+      "avg_episode_length": 258.0,
+      "num_episodes": 50
+    },
+    "webster": {
+      "name": "Webster's Method",
+      "avg_wait_time": 0.0,
+      "std_wait_time": 0.0,
+      "min_wait_time": 0.0,
+      "max_wait_time": 0.0,
+      "avg_queue_length": 0.7727168798446655,
+      "avg_reward": -402.5215752557369,
+      "avg_episode_length": 349.12,
+      "num_episodes": 50
+    },
+    "hierarchical_rl": {
+      "name": "Hierarchical RL",
+      "avg_wait_time": 0.0,
+      "std_wait_time": 0.0,
+      "min_wait_time": 0.0,
+      "max_wait_time": 0.0,
+      "avg_queue_length": 0.9223313927650452,
+      "avg_reward": -85.28163096776274,
+      "avg_episode_length": 62.14,
+      "num_episodes": 50
+    },
+    "model_based_rl": {
+      "name": "Model-Based RL",
+      "avg_wait_time": 0.0,
+      "std_wait_time": 0.0,
+      "min_wait_time": 0.0,
+      "max_wait_time": 0.0,
+      "avg_queue_length": 0.7062056064605713,
+      "avg_reward": -108.23475266050723,
+      "avg_episode_length": 99.5,
+      "num_episodes": 50
+    }
+  },
+  "best_performer": {
+    "by_reward": {
+      "name": "hierarchical_rl",
+      "reward": -85.28163096776274,
+      "wait_time": 0.0
+    },
+    "by_wait_time": {
+      "name": "fuzzy_logic",
+      "wait_time": 0.0,
+      "reward": -111.07600823136478
+    }
+  }
+}

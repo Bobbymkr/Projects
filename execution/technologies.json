@@ -1,0 +1,265 @@
+{
+  "total_technologies": 17,
+  "categories": {
+    "reinforcement_learning": 9,
+    "experimental": 2,
+    "classical_control": 2,
+    "optimization": 2,
+    "forecasting": 2
+  },
+  "technologies": {
+    "dqn": {
+      "technology": "dqn",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\rl\\dqn_agent.py",
+        "src\\rl\\dqn_agent.py"
+      ],
+      "classes": [
+        "DQNAgent",
+        "PrioritizedReplayBuffer",
+        "ReplayBuffer",
+        "SumTree",
+        "DQNConfig",
+        "QNet",
+        "Adam"
+      ],
+      "status": "implemented"
+    },
+    "bayesian_rl": {
+      "technology": "bayesian_rl",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\research\\novel_algorithms\\bayesian_methods.py"
+      ],
+      "classes": [
+        "BayesianAgent",
+        "BayesianNeuralNetwork",
+        "BayesianOptimization",
+        "BayesianLinear"
+      ],
+      "status": "implemented"
+    },
+    "causal_rl": {
+      "technology": "causal_rl",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\research\\novel_algorithms\\causal_inference.py"
+      ],
+      "classes": [
+        "CausalModel",
+        "CausalGraph",
+        "CausalAgent"
+      ],
+      "status": "implemented"
+    },
+    "diffusion_agent": {
+      "technology": "diffusion_agent",
+      "category": "experimental",
+      "files": [
+        "src\\research\\novel_algorithms\\diffusion_models.py"
+      ],
+      "classes": [
+        "DiffusionTrafficAgent",
+        "SinusoidalPositionalEmbedding",
+        "DiffusionUNet"
+      ],
+      "status": "implemented"
+    },
+    "hierarchical_rl": {
+      "technology": "hierarchical_rl",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\research\\novel_algorithms\\hierarchical_rl.py",
+        "src\\research\\novel_algorithms\\hierarchical_rl_complete.py"
+      ],
+      "classes": [
+        "TerminationNetwork",
+        "HierarchicalRLAgent",
+        "OptionValueNetwork",
+        "OptionPolicyNetwork",
+        "HierarchicalPolicy",
+        "Option",
+        "OptionDiscovery",
+        "OptionType"
+      ],
+      "status": "implemented"
+    },
+    "imitation_learning": {
+      "technology": "imitation_learning",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\research\\novel_algorithms\\imitation_learning.py",
+        "src\\research\\novel_algorithms\\imitation_learning_complete.py"
+      ],
+      "classes": [
+        "ExpertDemonstration",
+        "BehavioralCloningAgent",
+        "HybridILRLAgent",
+        "ImitationLearningTrainer",
+        "BehavioralCloningNetwork",
+        "InverseReinforcementLearning",
+        "DAggerAgent"
+      ],
+      "status": "implemented"
+    },
+    "llm_agent": {
+      "technology": "llm_agent",
+      "category": "experimental",
+      "files": [
+        "src\\research\\novel_algorithms\\llm_traffic.py"
+      ],
+      "classes": [
+        "TrafficLLMEncoder",
+        "LLMTrafficAgent",
+        "SimpleLLM"
+      ],
+      "status": "implemented"
+    },
+    "meta_learning": {
+      "technology": "meta_learning",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\research\\novel_algorithms\\meta_learning.py"
+      ],
+      "classes": [
+        "MAMLNetwork",
+        "ReptileAgent",
+        "MAMLAgent"
+      ],
+      "status": "implemented"
+    },
+    "model_based_rl": {
+      "technology": "model_based_rl",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\research\\novel_algorithms\\model_based_rl.py",
+        "src\\research\\novel_algorithms\\model_based_rl_complete.py"
+      ],
+      "classes": [
+        "WorldModel",
+        "WorldModelState",
+        "ModelPredictiveControl",
+        "ModelBasedRLAgent",
+        "RewardModel",
+        "TransitionModel"
+      ],
+      "status": "implemented"
+    },
+    "neuro_symbolic": {
+      "technology": "neuro_symbolic",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\research\\novel_algorithms\\neuro_symbolic.py"
+      ],
+      "classes": [
+        "SymbolicRule",
+        "NeuroSymbolicNetwork",
+        "SymbolicReasoner",
+        "NeuroSymbolicAgent"
+      ],
+      "status": "implemented"
+    },
+    "transformer_agent": {
+      "technology": "transformer_agent",
+      "category": "reinforcement_learning",
+      "files": [
+        "src\\research\\novel_algorithms\\transformer_control.py"
+      ],
+      "classes": [
+        "TransformerAgent",
+        "TransformerTrafficController",
+        "PositionalEncoding"
+      ],
+      "status": "implemented"
+    },
+    "fuzzy_logic": {
+      "technology": "fuzzy_logic",
+      "category": "classical_control",
+      "files": [
+        "src\\control\\fuzzy_control.py"
+      ],
+      "classes": [
+        "FuzzyController",
+        "FuzzySet",
+        "FuzzyRule"
+      ],
+      "status": "implemented"
+    },
+    "webster": {
+      "technology": "webster",
+      "category": "classical_control",
+      "files": [
+        "src\\control\\webster_method.py"
+      ],
+      "classes": [
+        "WebsterMethod"
+      ],
+      "status": "implemented"
+    },
+    "genetic_algorithm": {
+      "technology": "genetic_algorithm",
+      "category": "optimization",
+      "files": [
+        "src\\optimization\\genetic_algo.py"
+      ],
+      "classes": [
+        "GeneticAlgorithm"
+      ],
+      "status": "implemented"
+    },
+    "pso": {
+      "technology": "pso",
+      "category": "optimization",
+      "files": [
+        "src\\optimization\\pso.py"
+      ],
+      "classes": [
+        "ParticleSwarmOptimizer"
+      ],
+      "status": "implemented"
+    },
+    "gnn_forecast": {
+      "technology": "gnn_forecast",
+      "category": "forecasting",
+      "files": [
+        "src\\forecast\\gnn_forecast.py"
+      ],
+      "classes": [
+        "GraphConvLayer",
+        "GNNForecaster"
+      ],
+      "status": "implemented"
+    },
+    "lstm_forecast": {
+      "technology": "lstm_forecast",
+      "category": "forecasting",
+      "files": [
+        "src\\forecast\\traffic_forecast.py"
+      ],
+      "classes": [
+        "TrafficForecaster"
+      ],
+      "status": "implemented"
+    }
+  },
+  "technology_list": [
+    "bayesian_rl",
+    "causal_rl",
+    "diffusion_agent",
+    "dqn",
+    "fuzzy_logic",
+    "genetic_algorithm",
+    "gnn_forecast",
+    "hierarchical_rl",
+    "imitation_learning",
+    "llm_agent",
+    "lstm_forecast",
+    "meta_learning",
+    "model_based_rl",
+    "neuro_symbolic",
+    "pso",
+    "transformer_agent",
+    "webster"
+  ]
+}

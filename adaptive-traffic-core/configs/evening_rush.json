@@ -1,0 +1,15 @@
+{
+  "num_lanes": 4,
+  "phase_lanes": [[0,1],[2,3]],
+  "min_green": 5,
+  "max_green": 60,
+  "green_step": 5,
+  "cycle_yellow": 3,
+  "cycle_all_red": 1,
+  "arrival_rates": [0.2, 0.15, 0.5, 0.45],
+  "queue_capacity": 40,
+  "reward_weights": {
+    "queue": -1.0,
+    "wait_penalty": -0.1
+  }
+}

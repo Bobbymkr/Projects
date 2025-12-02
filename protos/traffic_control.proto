@@ -1,0 +1,98 @@
+// Week 10: gRPC Service Definitions
+
+syntax = "proto3";
+
+package traffic_control;
+
+// Detection Service
+service DetectionService {
+  rpc DetectVehicles (DetectionRequest) returns (DetectionResponse);
+  rpc EstimateQueues (QueueEstimationRequest) returns (QueueEstimationResponse);
+}
+
+message DetectionRequest {
+  bytes image = 1;
+  string intersection_id = 2;
+}
+
+message DetectionResponse {
+  repeated BoundingBox boxes = 1;
+  repeated float confidences = 2;
+  repeated string classes = 3;
+}
+
+message BoundingBox {
+  float x_min = 1;
+  float y_min = 2;
+  float x_max = 3;
+  float y_max = 4;
+}
+
+message QueueEstimationRequest {
+  bytes image = 1;
+  string intersection_id = 2;
+  int32 lane = 3;
+}
+
+message QueueEstimationResponse {
+  int32 queue_length = 1;
+  float confidence = 2;
+}
+
+// Agent Service
+service AgentService {
+  rpc SelectAction (ActionRequest) returns (ActionResponse);
+  rpc Train (TrainRequest) returns (TrainResponse);
+}
+
+message ActionRequest {
+  repeated float state = 1;
+  string agent_type = 2;
+  string intersection_id = 3;
+}
+
+message ActionResponse {
+  int32 action = 1;
+  float confidence = 2;
+  float latency_ms = 3;
+}
+
+message TrainRequest {
+  repeated float state = 1;
+  int32 action = 2;
+  float reward = 3;
+  repeated float next_state = 4;
+  bool done = 5;
+}
+
+message TrainResponse {
+  bool success = 1;
+  float loss = 2;
+}
+
+// Signal Controller Service
+service SignalControllerService {
+  rpc ExecuteAction (ExecuteActionRequest) returns (ExecuteActionResponse);
+  rpc GetCurrentPhase (GetPhaseRequest) returns (GetPhaseResponse);
+}
+
+message ExecuteActionRequest {
+  int32 action = 1;
+  string intersection_id = 2;
+}
+
+message ExecuteActionResponse {
+  bool success = 1;
+  int32 new_phase = 2;
+  int32 green_time = 3;
+}
+
+message GetPhaseRequest {
+  string intersection_id = 1;
+}
+
+message GetPhaseResponse {
+  int32 current_phase = 1;
+  int32 remaining_time = 2;
+}
+

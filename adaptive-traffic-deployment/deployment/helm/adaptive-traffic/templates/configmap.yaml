@@ -1,0 +1,17 @@
+# ConfigMap Template for Helm Chart
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "adaptive-traffic.fullname" . }}-config
+  labels:
+    {{- include "adaptive-traffic.labels" . | nindent 4 }}
+data:
+  API_VERSION: {{ .Values.config.environment | quote }}
+  ENVIRONMENT: {{ .Values.config.environment | quote }}
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  ENABLE_REDIS: {{ .Values.config.enableRedis | quote }}
+  ENABLE_CACHING: {{ .Values.config.enableCaching | quote }}
+  ENABLE_RATE_LIMITING: {{ .Values.config.enableRateLimiting | quote }}
+  DEFAULT_CACHE_TTL: {{ .Values.config.defaultCacheTTL | quote }}
+

@@ -1,0 +1,40 @@
+# Pod Disruption Budget for High Availability
+# Phase 4: Infrastructure Excellence
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: adaptive-traffic-api-pdb
+  namespace: default
+spec:
+  minAvailable: 2  # Ensure at least 2 pods are always available
+  selector:
+    matchLabels:
+      app: adaptive-traffic-api
+
+---
+# Pod Disruption Budget for Redis
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis-pdb
+  namespace: default
+spec:
+  minAvailable: 1  # Redis is stateful, maintain at least 1
+  selector:
+    matchLabels:
+      app: redis
+
+---
+# Pod Disruption Budget for PostgreSQL
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-pdb
+  namespace: default
+spec:
+  minAvailable: 1  # PostgreSQL is stateful, maintain at least 1
+  selector:
+    matchLabels:
+      app: postgres
+

@@ -1,0 +1,71 @@
+{
+  "dashboard": {
+    "title": "Traffic Metrics Dashboard",
+    "tags": ["traffic", "metrics", "adaptive-traffic"],
+    "timezone": "browser",
+    "schemaVersion": 37,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Intersections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "active_intersections"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Total Vehicles Processed",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(vehicles_processed_total)"
+          }
+        ],
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Average Wait Time by Intersection",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, average_wait_time_seconds)",
+            "legendFormat": "{{intersection_id}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+      },
+      {
+        "id": 4,
+        "title": "Queue Lengths",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "queue_length",
+            "legendFormat": "{{intersection_id}}-{{lane_id}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 5,
+        "title": "Vehicles Processed Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(vehicles_processed_total[5m])",
+            "legendFormat": "{{intersection_id}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12}
+      }
+    ]
+  }
+}
+

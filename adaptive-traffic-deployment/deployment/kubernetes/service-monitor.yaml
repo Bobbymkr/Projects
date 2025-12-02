@@ -1,0 +1,21 @@
+# Prometheus ServiceMonitor for Kubernetes
+# Phase 4: Infrastructure Excellence
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: adaptive-traffic-api
+  namespace: monitoring
+  labels:
+    app: adaptive-traffic-api
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: adaptive-traffic-api
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+

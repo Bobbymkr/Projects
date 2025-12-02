@@ -1,0 +1,15 @@
+{
+  "agent": "dqn",
+  "timestamp": "2025-12-02T13:29:30.178487",
+  "optimization_time_seconds": 0.19870257377624512,
+  "best_params": {
+    "learning_rate": 0.0001329291894316216,
+    "batch_size": 245,
+    "gamma": 0.9724674002393291,
+    "epsilon_start": 0.9598658484197037,
+    "epsilon_end": 0.02404167763981929,
+    "replay_buffer_size": 14321
+  },
+  "best_value": -Infinity,
+  "n_trials": 20
+}

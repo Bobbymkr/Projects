@@ -1,0 +1,261 @@
+{
+  "timestamp": "2025-12-02T13:30:29.209046",
+  "config": {
+    "episodes": 100,
+    "scenarios": [
+      "rush_hour",
+      "off_peak",
+      "emergency_vehicle",
+      "accident_road_closure",
+      "special_event",
+      "multi_intersection",
+      "mixed_traffic",
+      "weather_impacted",
+      "construction_zone",
+      "adaptive_timing"
+    ],
+    "technologies": [
+      "fuzzy_logic",
+      "dqn"
+    ],
+    "total_runs": 2000
+  },
+  "results": [
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "rush_hour",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "off_peak",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "emergency_vehicle",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "accident_road_closure",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "special_event",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "multi_intersection",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "mixed_traffic",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "weather_impacted",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "construction_zone",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "technology": "fuzzy_logic",
+      "scenario": "adaptive_timing",
+      "episodes": 100,
+      "errors": 100
+    },
+    {
+      "avg_wait_time": 11.99191374551947,
+      "max_wait_time": 12.858222110299673,
+      "95th_percentile_wait": 12.609484617178907,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 458819848.6473681,
+      "avg_inference_latency_ms": 0.009891544531912825,
+      "p95_inference_latency_ms": 0.011494148910315327,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 396524,
+      "technology": "dqn",
+      "scenario": "rush_hour",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 11.95810188783143,
+      "max_wait_time": 12.914637146371463,
+      "95th_percentile_wait": 12.45376633888993,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 526417199.13101983,
+      "avg_inference_latency_ms": 0.008589886971728295,
+      "p95_inference_latency_ms": 0.009352912730221296,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 396524,
+      "technology": "dqn",
+      "scenario": "off_peak",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 11.973081739087798,
+      "max_wait_time": 12.798007471980075,
+      "95th_percentile_wait": 12.507585715469386,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 528286042.9795697,
+      "avg_inference_latency_ms": 0.008556357336260076,
+      "p95_inference_latency_ms": 0.009089897121239572,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 396901,
+      "technology": "dqn",
+      "scenario": "emergency_vehicle",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 11.965574425844634,
+      "max_wait_time": 12.731531978185425,
+      "95th_percentile_wait": 12.433549048427999,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 474135307.41804975,
+      "avg_inference_latency_ms": 0.009638389311225164,
+      "p95_inference_latency_ms": 0.010607684899239517,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 396740,
+      "technology": "dqn",
+      "scenario": "accident_road_closure",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 11.977471415381263,
+      "max_wait_time": 12.776145418326694,
+      "95th_percentile_wait": 12.537654246899534,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 450757160.7093824,
+      "avg_inference_latency_ms": 0.010077316836534043,
+      "p95_inference_latency_ms": 0.010710711932290194,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 397698,
+      "technology": "dqn",
+      "scenario": "special_event",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 11.987266824644031,
+      "max_wait_time": 12.93955642213015,
+      "95th_percentile_wait": 12.438672586834747,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 453238947.72827035,
+      "avg_inference_latency_ms": 0.010025673861956703,
+      "p95_inference_latency_ms": 0.010711682867680199,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 398312,
+      "technology": "dqn",
+      "scenario": "multi_intersection",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 12.018735305607763,
+      "max_wait_time": 12.712017586712262,
+      "95th_percentile_wait": 12.460096066367958,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 419197318.5979514,
+      "avg_inference_latency_ms": 0.010856082536516147,
+      "p95_inference_latency_ms": 0.01196580774643842,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 398058,
+      "technology": "dqn",
+      "scenario": "mixed_traffic",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 12.00173510886518,
+      "max_wait_time": 13.117880138682516,
+      "95th_percentile_wait": 12.51383038129168,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 424739764.1918667,
+      "avg_inference_latency_ms": 0.010710755084974195,
+      "p95_inference_latency_ms": 0.011715414297526778,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 397829,
+      "technology": "dqn",
+      "scenario": "weather_impacted",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 11.976779403795511,
+      "max_wait_time": 12.763868065967017,
+      "95th_percentile_wait": 12.567086866935608,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 451204780.53984433,
+      "avg_inference_latency_ms": 0.010052579560430881,
+      "p95_inference_latency_ms": 0.010839738457451039,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 397774,
+      "technology": "dqn",
+      "scenario": "construction_zone",
+      "episodes": 100,
+      "errors": 0
+    },
+    {
+      "avg_wait_time": 12.007145386700975,
+      "max_wait_time": 12.871884346959122,
+      "95th_percentile_wait": 12.653060711959098,
+      "avg_queue_length": 0.0,
+      "throughput_vehicles_per_hour": 464624556.47510093,
+      "avg_inference_latency_ms": 0.009774622334614059,
+      "p95_inference_latency_ms": 0.010540312771344077,
+      "avg_cpu_usage_percent": 0.0,
+      "avg_memory_mb": 0.0,
+      "episodes_completed": 100,
+      "total_vehicles": 397926,
+      "technology": "dqn",
+      "scenario": "adaptive_timing",
+      "episodes": 100,
+      "errors": 0
+    }
+  ],
+  "summary": {
+    "total_time_seconds": 33.99523401260376,
+    "total_combinations": 20,
+    "successful": 10,
+    "failed": 10
+  }
+}

@@ -1,0 +1,366 @@
+import json
+import os
+import argparse
+import numpy as np
+from tqdm import trange
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+from src.control.fuzzy_control import FuzzyController
+from src.control.webster_method import WebsterMethod
+from src.optimization.genetic_algo import GeneticAlgorithm
+from src.optimization.pso import ParticleSwarmOptimizer
+from src.forecast.gnn_forecast import GNNForecaster
+import optuna
+# Remove: from optuna.integration import SB3OptunaCallback
+
+from src.env.traffic_env import TrafficEnv
+from src.env.sumo_env import SumoEnv
+from src.env.marl_env import MarlEnv
+from src.rl.dqn_agent import DQNAgent, DQNConfig
+from stable_baselines3 import DQN
+from stable_baselines3.common.callbacks import CheckpointCallback, BaseCallback
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+
+
+class EpisodeRewardCallback(BaseCallback):
+    """Callback to track episode rewards during training."""
+    def __init__(self, verbose=0):
+        """Initialize the episode reward callback.
+        
+        Args:
+            verbose: Verbosity level for logging (0=silent, 1=print rewards)
+        """
+        super(EpisodeRewardCallback, self).__init__(verbose)
+        self.episode_rewards = []
+        self.current_episode_reward = 0.0
+        self.episode_count = 0
+
+    def _on_step(self) -> bool:
+        """Called at each environment step during training.
+        
+        Returns:
+            bool: Always True to continue training
+        """
+        # Track rewards
+        if len(self.locals.get('rewards', [])) > 0:
+            self.current_episode_reward += self.locals['rewards'][0]
+        
+        # Check if episode is done
+        if len(self.locals.get('dones', [])) > 0 and self.locals['dones'][0]:
+            self.episode_rewards.append(self.current_episode_reward)
+            self.current_episode_reward = 0.0
+            self.episode_count += 1
+            if self.verbose > 0:
+                print(f"Episode {self.episode_count}: Reward = {self.episode_rewards[-1]:.2f}")
+        
+        return True
+
+    def _on_training_end(self) -> None:
+        """Called at the end of training to print final statistics."""
+        if self.verbose > 0:
+            avg_reward = np.mean(self.episode_rewards) if self.episode_rewards else 0.0
+            print(f"Training completed. Average reward: {avg_reward:.2f}")
+
+
+def load_config(path: str):
+    """Load configuration from a JSON file.
+    
+    Args:
+        path: Path to the configuration file
+        
+    Returns:
+        dict: Dictionary of configuration settings
+    """
+    with open(path, 'r') as f:
+        return json.load(f)
+
+
+def make_env(cfg_path: str, use_sumo: bool, use_marl: bool):
+    """Create the appropriate environment based on configuration flags.
+    
+    Args:
+        cfg_path: Path to environment configuration file
+        use_sumo: Flag to use SUMO-based environment
+        use_marl: Flag to use Multi-Agent RL environment
+        
+    Returns:
+        Environment instance (TrafficEnv, SumoEnv, or MarlEnv)
+    """
+    if use_marl:
+        return MarlEnv(config_path=cfg_path)
+    cfg = load_config(cfg_path)
+    if use_sumo:
+        return SumoEnv(cfg)
+    return TrafficEnv(cfg)
+
+
+def train(cfg_path: str, episodes: int, out_dir: str, use_sumo: bool, use_marl: bool, tune: bool = False, n_envs: int = 1, method: str = 'dqn'):
+    """Train or evaluate the selected control method with optional hyperparameter tuning.
+    
+    This function supports multiple training/evaluation modes:
+    - Single-agent DQN training with optional parallelization
+    - Multi-agent reinforcement learning (MARL) with forecasting
+    - Classical control methods (Fuzzy, Webster, GA, PSO, GNN)
+    - Hyperparameter optimization using Optuna
+    
+    Args:
+        cfg_path: Path to environment configuration file
+        episodes: Number of training/evaluation episodes
+        out_dir: Output directory for saving models and results
+        use_sumo: Use SUMO-based traffic simulation environment
+        use_marl: Use Multi-Agent RL with intersection coordination
+        tune: Perform hyperparameter tuning with Optuna
+        n_envs: Number of parallel environments (single-agent only)
+        method: Control method to use ('dqn', 'fuzzy', 'webster', 'ga', 'pso', 'gnn')
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    if use_marl:
+        if n_envs > 1:
+            print("Warning: Parallelization not supported for MARL yet.")
+        env = make_env(cfg_path, use_sumo, use_marl)
+    else:
+        def create_env():
+            return make_env(cfg_path, use_sumo, use_marl)
+        if n_envs > 1:
+            env = SubprocVecEnv([create_env for _ in range(n_envs)])
+        else:
+            env = DummyVecEnv([create_env])
+    if use_marl:
+        # Pre-train forecasters
+        num_collection_episodes = 10
+        input_timesteps = 10
+        forecast_steps = 5
+        for _ in range(num_collection_episodes):
+            states = env.reset()
+            done = False
+            episode_data = [[] for _ in range(env.num_agents)]
+            while not done:
+                actions = [np.random.randint(0, 2) for _ in range(env.num_agents)]
+                next_states, _, dones, _ = env.step(actions)
+                for i in range(env.num_agents):
+                    base_state = next_states[i][:8]
+                    episode_data[i].append(base_state)
+                states = next_states
+                done = any(dones)
+            for i in range(env.num_agents):
+                data = np.array(episode_data[i])
+                if len(data) > input_timesteps + forecast_steps:
+                    X = []
+                    y = []
+                    for t in range(len(data) - input_timesteps - forecast_steps + 1):
+                        X.append(data[t:t+input_timesteps])
+                        y.append(data[t+input_timesteps:t+input_timesteps+forecast_steps])
+                    X = np.array(X)
+                    y = np.array(y)
+                    env.forecaster[env.intersections[i]].train(X, y, epochs=20, batch_size=32)
+        # Save forecasters
+        for i, tl in enumerate(env.intersections):
+            env.forecaster[tl].save(os.path.join(out_dir, f'forecaster_{tl}.h5'))
+
+    # Add tuning here
+    if tune:
+        def objective(trial):
+            learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
+            buffer_size = trial.suggest_int('buffer_size', 10000, 1000000, log=True)
+            batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256])
+            gamma = trial.suggest_float('gamma', 0.9, 0.999)
+    
+            if use_marl:
+                agents = []
+                for i in range(env.num_agents):
+                    agent_env = DummyVecEnv([lambda: make_env(cfg_path, use_sumo, use_marl)])
+                    agent = DQN('MlpPolicy', agent_env, learning_rate=learning_rate, buffer_size=buffer_size, batch_size=batch_size, gamma=gamma, verbose=0, tensorboard_log="logs/optuna/")
+                    agent.learn(total_timesteps=10000)  # Reduced for tuning
+                    agents.append(agent)
+                # Simulate one episode to evaluate
+                eval_env = make_env(cfg_path, use_sumo, use_marl)
+                states = eval_env.reset()
+                done = False
+                total_reward = 0
+                while not done:
+                    actions = [ag.predict(st)[0] for ag, st in zip(agents, states)]
+                    next_states, rews, dones, _ = eval_env.step(actions)
+                    total_reward += sum(rews)
+                    states = next_states
+                    done = any(dones)
+                return total_reward
+            else:
+                tune_env = DummyVecEnv([lambda: make_env(cfg_path, use_sumo, use_marl)])
+                model = DQN('MlpPolicy', tune_env, learning_rate=learning_rate, buffer_size=buffer_size, batch_size=batch_size, gamma=gamma, verbose=0, tensorboard_log="logs/optuna/")
+                model.learn(total_timesteps=10000)  # Reduced for tuning
+                # Evaluate
+                eval_env = DummyVecEnv([lambda: make_env(cfg_path, use_sumo, use_marl)])
+                obs = eval_env.reset()
+                total_reward = 0
+                done = False
+                while not done:
+                    action, _ = model.predict(obs)
+                    obs, rewards, dones, _ = eval_env.step(action)
+                    total_reward += rewards[0]
+                    done = dones[0]
+                return total_reward
+    
+        study = optuna.create_study(direction='maximize')
+        study.optimize(objective, n_trials=3)  # Reduced for testing
+        print('Best hyperparameters:', study.best_params)
+        best_params = study.best_params
+    else:
+        best_params = {}
+
+    checkpoint_path = os.path.join(out_dir, 'checkpoint')
+    checkpoint_callback = CheckpointCallback(save_freq=1, save_path=checkpoint_path, name_prefix='dqn_model')
+
+    rewards = []
+    start_episode = 0
+
+    if method == 'dqn':
+        if use_marl:
+            num_agents = env.num_agents
+            agents = []
+            if os.path.exists(checkpoint_path):
+                print(f"Loading checkpoint from {checkpoint_path}")
+                for i in range(num_agents):
+                    agent_env = DummyVecEnv([lambda: env])
+                    agent = DQN.load(os.path.join(checkpoint_path, f'dqn_traffic_agent_{i}'))
+                    agents.append(agent)
+                rewards = np.load(os.path.join(checkpoint_path, 'rewards.npy')).tolist()
+                start_episode = len(rewards)
+            else:
+                for i in range(num_agents):
+                    agent_env = DummyVecEnv([lambda: env])
+                    agent = DQN("MlpPolicy", agent_env, **best_params, verbose=1, tensorboard_log=os.path.join(out_dir, 'tensorboard_logs'))
+                    agents.append(agent)
+
+            for ep in trange(start_episode, episodes, desc="Training"):
+                states = env.reset()
+                ep_rewards = [0.0] * num_agents
+                done = False
+                while not done:
+                    actions = [ag.predict(st)[0] for ag, st in zip(agents, states)]
+                    next_states, rews, dones, _ = env.step(actions)
+                    done = any(dones)
+                    # For actual training, need to implement learning step here or use a MARL framework
+                    ep_rewards = [ep_rewards[i] + rews[i] for i in range(num_agents)]
+                    states = next_states
+                rewards.append(np.mean(ep_rewards))
+                for i, ag in enumerate(agents):
+                    ag.save(os.path.join(checkpoint_path, f'dqn_traffic_agent_{i}'))
+                np.save(os.path.join(checkpoint_path, 'rewards.npy'), np.array(rewards))
+        else:
+            # Create reward tracking callback
+            reward_callback = EpisodeRewardCallback(verbose=1)
+            callback_list = [checkpoint_callback, reward_callback]
+            
+            if os.path.exists(os.path.join(checkpoint_path, 'dqn_model.zip')):
+                model = DQN.load(os.path.join(checkpoint_path, 'dqn_model'))
+                if os.path.exists(os.path.join(checkpoint_path, 'rewards.npy')):
+                    rewards = np.load(os.path.join(checkpoint_path, 'rewards.npy')).tolist()
+                start_episode = len(rewards)
+            else:
+                model = DQN("MlpPolicy", env, **best_params, verbose=1, tensorboard_log=os.path.join(out_dir, 'tensorboard_logs'))
+
+            model.learn(total_timesteps=episodes * 1000, callback=callback_list)
+            
+            # Collect rewards from callback
+            if reward_callback.episode_rewards:
+                rewards.extend(reward_callback.episode_rewards)
+            else:
+                # Fallback: Evaluate the trained model to get reward estimates
+                print("Evaluating trained model to estimate rewards...")
+                eval_env = env.get_env() if hasattr(env, 'get_env') else env
+                for _ in range(episodes):
+                    obs, _ = eval_env.reset()
+                    ep_reward = 0
+                    done = False
+                    while not done:
+                        action, _ = model.predict(obs, deterministic=True)
+                        obs, reward, done, _ = eval_env.step(action)
+                        ep_reward += reward
+                    rewards.append(ep_reward)
+            
+            # Save the model
+            model.save(os.path.join(out_dir, 'dqn_traffic'))
+
+        np.save(os.path.join(out_dir, 'rewards.npy'), np.array(rewards))
+        print(f"Average reward over {episodes} episodes: {np.mean(rewards):.2f}")
+
+    elif method in ['fuzzy', 'webster', 'ga', 'pso', 'gnn']:
+        # For non-trainable methods, run evaluation simulations
+        rewards = []
+        for ep in trange(episodes, desc=f"Evaluating {method}"):
+            # Create raw environment for non-DQN methods (no VecEnv wrapper)
+            raw_env = make_env(cfg_path, use_sumo, use_marl)
+            state, _ = raw_env.reset()  # Raw env returns tuple (obs, info)
+            ep_reward = 0
+            done = False
+            controller = None
+            if method == 'fuzzy':
+                controller = FuzzyController()
+            elif method == 'webster':
+                controller = WebsterMethod()
+            elif method == 'ga':
+                controller = GeneticAlgorithm()
+            elif method == 'pso':
+                controller = ParticleSwarmOptimizer()
+            elif method == 'gnn':
+                controller = GNNForecaster(num_nodes=4, input_dim=4)
+            while not done:
+                if use_marl:
+                    if method == 'fuzzy':
+                        actions = [controller.compute_timing(s[:4]) for s in state]
+                    elif method == 'webster':
+                        actions = [controller.get_action({'volumes': s[:4]})['green_times'][0] for s in state]
+                    elif method == 'ga':
+                        actions = [controller.optimize(s[:4], s[4:8])[0] for s in state]
+                    elif method == 'pso':
+                        actions = [controller.optimize(s[:4])[0] for s in state]
+                    elif method == 'gnn':
+                        actions = [controller.predict(np.array([s]))[0] for s in state]
+                else:
+                    if method == 'fuzzy':
+                        timing = controller.compute_timing(state[:4])
+                        # Convert timing to action index
+                        actions = max(0, min(len(raw_env.green_values)-1, int((timing - raw_env.min_green) / raw_env.green_step)))
+                    elif method == 'webster':
+                        result = controller.get_action({'volumes': state[:4]})
+                        timing = result['green_times'][0]
+                        actions = max(0, min(len(raw_env.green_values)-1, int((timing - raw_env.min_green) / raw_env.green_step)))
+                    elif method == 'ga':
+                        timing = controller.optimize(state[:4], state[4:8] if len(state) > 4 else state[:4])[0]
+                        actions = max(0, min(len(raw_env.green_values)-1, int((timing - raw_env.min_green) / raw_env.green_step)))
+                    elif method == 'pso':
+                        timing = controller.optimize(state[:4], state[:4])[0]  # Use queues for both params
+                        actions = max(0, min(len(raw_env.green_values)-1, int((timing - raw_env.min_green) / raw_env.green_step)))
+                    elif method == 'gnn':
+                        timing = controller.predict(np.array([state]))[0]
+                        actions = max(0, min(len(raw_env.green_values)-1, int((timing - raw_env.min_green) / raw_env.green_step)))
+                step_result = raw_env.step(actions)
+                if len(step_result) == 5:
+                    next_state, reward, done, truncated, _ = step_result
+                    done = done or truncated  # Combine terminated and truncated
+                else:
+                    next_state, reward, done, _ = step_result
+                ep_reward += reward if not use_marl else sum(reward)
+                state = next_state
+            rewards.append(ep_reward)
+        np.save(os.path.join(out_dir, f'{method}_rewards.npy'), np.array(rewards))
+        print(f"Average reward for {method} over {episodes} episodes: {np.mean(rewards):.2f}")
+
+    else:
+        raise ValueError(f"Unknown method: {method}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config', default='configs/intersection.json')
+    parser.add_argument('--episodes', type=int, default=5)
+    parser.add_argument('--out', default='runs')
+    parser.add_argument('--use_sumo', action='store_true', help='Use SUMO-based environment instead of custom simulator')
+    parser.add_argument('--marl', action='store_true', help='Use MARL environment for network coordination')
+    parser.add_argument('--tune', action='store_true', help='Perform hyperparameter tuning with Optuna')
+    parser.add_argument('--n_envs', type=int, default=1, help='Number of parallel environments (for single-agent only)')
+    parser.add_argument('--method', type=str, default='dqn', choices=['dqn', 'fuzzy', 'ga', 'pso', 'gnn', 'webster'], help='Control method to train/evaluate')
+    args = parser.parse_args()
+    train(args.config, args.episodes, args.out, args.use_sumo, args.marl, args.tune, args.n_envs, args.method)
+

@@ -1,0 +1,12 @@
+# Adaptive Traffic Research - Research dependencies
+wandb>=0.15.0
+tensorboard>=2.14.0
+optuna>=3.6.0
+
+# Optional: Federated Learning
+# flwr>=1.5.0  # Uncomment for federated learning support
+
+# Local dependencies (install from parent directory)
+# adaptive-traffic-core
+# adaptive-traffic-common
+

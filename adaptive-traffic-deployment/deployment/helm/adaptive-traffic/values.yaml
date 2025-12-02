@@ -1,0 +1,96 @@
+# Default values for Adaptive Traffic API
+# Phase 4: Infrastructure Excellence
+
+replicaCount: 3
+
+image:
+  repository: adaptive-traffic-api
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: api.adaptive-traffic.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: adaptive-traffic-tls
+      hosts:
+        - api.adaptive-traffic.example.com
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: ""
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: ""
+    database: "traffic_control"
+
+# ConfigMap values
+config:
+  environment: "production"
+  logLevel: "INFO"
+  enableRedis: true
+  enableCaching: true
+  enableRateLimiting: true
+  defaultCacheTTL: 300
+
+# Secrets (should be provided via --set or secrets.yaml)
+secrets:
+  secretKey: ""
+  databaseUrl: ""
+  sentryDsn: ""
+

@@ -1,0 +1,9 @@
+# Adaptive Traffic Vision - Vision dependencies
+opencv-python>=4.10.0
+ultralytics>=8.3.0
+numpy>=1.26.0
+pillow>=10.0.0
+
+# Local dependencies (install from parent directory)
+# adaptive-traffic-common
+
