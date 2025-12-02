@@ -127,6 +127,7 @@ class WorldModel:
         self.reward_optimizer = optim.Adam(self.reward_model.parameters(), lr=learning_rate)
         
         self.is_trained = False
+        self.is_converged = False  # Track convergence status
         logger.info(f"Initialized World Model (state_dim={state_dim}, action_dim={action_dim})")
     
     def train(
@@ -298,6 +299,9 @@ class ModelPredictiveControl:
         self.world_model = world_model
         self.horizon = horizon
         self.num_candidates = num_candidates
+        # Reduced parameters for faster inference after convergence
+        self.converged_horizon = 5
+        self.converged_candidates = 20
     
     def select_action(
         self,
@@ -321,13 +325,17 @@ class ModelPredictiveControl:
                 self.world_model._mpc_warning_logged = True
             return np.random.randint(0, action_dim)
         
+        # Use reduced planning params if converged for speed
+        horizon = self.converged_horizon if hasattr(self.world_model, 'is_converged') and getattr(self.world_model, 'is_converged', False) else self.horizon
+        num_candidates = self.converged_candidates if hasattr(self.world_model, 'is_converged') and getattr(self.world_model, 'is_converged', False) else self.num_candidates
+        
         # Generate candidate action sequences
         candidates = []
-        for _ in range(self.num_candidates):
+        for _ in range(num_candidates):
             # Generate random action sequence
             action_sequence = [
                 np.random.randint(0, action_dim)
-                for _ in range(self.horizon)
+                for _ in range(horizon)
             ]
             
             # Simulate trajectory and compute value
@@ -544,6 +552,7 @@ class ModelBasedRLAgent:
         # Mark as converged if stable for multiple trainings
         if self.convergence_count >= self.convergence_patience:
             self.is_converged = True
+            self.world_model.is_converged = True  # Also mark world model as converged
     
     @property
     def replay_buffer(self):

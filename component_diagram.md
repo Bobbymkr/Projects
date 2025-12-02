@@ -108,72 +108,91 @@ graph TB
 
 ```mermaid
 graph TB
-    subgraph "Reinforcement Learning Subsystem"
-        subgraph "Neural Network Core"
-            QN[QNetwork<br/>3-Layer MLP]
-            TN[TargetNetwork<br/>Stable Q-targets]
-            FP[ForwardPass<br/>Q-value Computation]
-            BP[BackwardPass<br/>Gradient Computation]
+    subgraph "Reinforcement Learning & Control Subsystem"
+        subgraph "Model-Based RL"
+            WM[WorldModel<br/>Dynamics Learning]
+            MPC[ModelPredictiveControl<br/>Planning]
+            MBA[ModelBasedRLAgent<br/>Policy Wrapper]
         end
-        
-        subgraph "Learning Components"
-            RB[ReplayBuffer<br/>Experience Storage]
-            PER[PrioritizedReplay<br/>Importance Sampling]
-            ES[EpsilonScheduler<br/>Exploration Control]
-            OPT[AdamOptimizer<br/>Parameter Updates]
+
+        subgraph "Hierarchical RL"
+            HLP[HighLevelPolicy<br/>Phase Selection]
+            LLP[LowLevelPolicy<br/>Timing Control]
+            HRA[HierarchicalRLAgent<br/>Coordinator]
         end
-        
-        subgraph "Agent Management"
-            DQN[DQNAgent<br/>Main Controller]
-            AS[ActionSelector<br/>Policy Execution]
-            SP[StateProcessor<br/>Input Normalization]
-            RL[RewardLogger<br/>Performance Tracking]
+
+        subgraph "Deep RL Agents"
+            TR[TransformerAgent<br/>Sequence Modeling]
+            DQN[DQNAgent<br/>Value-based]
+            MAML[MAMLAgent<br/>Meta-learning]
+            REPT[ReptileAgent<br/>Meta-learning]
+            HYB[HybridILRLAgent<br/>Imitation+RL]
         end
-        
-        subgraph "Multi-Agent Support"
-            MAC[MultiAgentCoordinator<br/>MARL Management]
-            IC[InterAgentComm<br/>Coordination Protocol]
-            CS[ConsensusStrategy<br/>Conflict Resolution]
+
+        subgraph "Probabilistic/Explainable"
+            BAY[BayesianAgent<br/>Uncertainty]
+            CAU[CausalAgent<br/>Causal Reasoning]
+            NS[NeuroSymbolicAgent<br/>Constraints]
         end
-        
-        subgraph "Training Pipeline"
-            TL[TrainingLoop<br/>Episode Management]
-            EV[Evaluator<br/>Performance Assessment]
-            MS[ModelSaver<br/>Checkpoint Management]
+
+        subgraph "Classical Controllers"
+            FZ[FuzzyController<br/>Rule-based]
+            WB[WebsterMethod<br/>Analytical]
+        end
+
+        subgraph "Learning & Ops"
+            RB[Replay/TransitionBuffer]
+            ES[EpsilonScheduler]
+            OPT[Optimizer]
+            TN[TargetNetwork]
+            TL[TrainingLoop]
+            EV[Evaluator]
+            MS[ModelSaver]
+            RL[RewardLogger]
         end
     end
-    
+
     %% Internal connections
-    DQN --> QN
-    QN --> FP
-    FP --> AS
-    AS --> SP
-    SP --> DQN
-    
+    MBA --> MPC
+    MPC --> MBA
+
+    HRA --> HLP
+    HLP --> LLP
+    LLP --> HRA
+
+    DQN --> TN
     DQN --> RB
-    RB --> PER
-    PER --> OPT
-    OPT --> QN
-    QN --> TN
-    
-    DQN --> ES
-    ES --> AS
-    DQN --> RL
-    
-    MAC --> DQN
-    MAC --> IC
-    IC --> CS
-    
+    TR --> RB
+    HYB --> RB
+
+    RB --> OPT
+    OPT --> DQN
+    OPT --> TR
+
+    ES --> DQN
+
     TL --> DQN
+    TL --> TR
+    TL --> MBA
+    TL --> HRA
     TL --> EV
     EV --> MS
-    
+
     %% External interfaces
-    EXT_CV[From CV Subsystem] -->|States| SP
-    AS -->|Actions| EXT_ENV[To Environment]
-    EXT_ENV -->|Rewards| RL
+    EXT_CV[From CV Subsystem] -->|States| TR
+    EXT_CV -->|States| DQN
+    EXT_CV -->|States| MBA
+    EXT_CV -->|States| HRA
+
+    MBA -->|Actions| EXT_ENV[To Environment]
+    HRA -->|Actions| EXT_ENV
+    TR -->|Actions| EXT_ENV
+    DQN -->|Actions| EXT_ENV
+
+    EXT_ENV -->|Rewards/Transitions| RB
     MS -->|Models| EXT_STORAGE[To Storage]
-    EXT_FORECAST[From Forecasting] -->|Predictions| SP
+    EXT_FORECAST[From Forecasting] -->|Predictions| TR
+    EXT_FORECAST -->|Predictions| MBA
 ```
 
 ## Environment Subsystem

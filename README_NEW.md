@@ -6,30 +6,34 @@
 [![Coverage](https://img.shields.io/badge/coverage-75%25-green.svg)](https://coverage.readthedocs.io/)
 [![Documentation](https://img.shields.io/badge/docs-100%25-brightgreen.svg)](https://adaptive-traffic.readthedocs.io/)
 
-> **World-class intelligent traffic signal control system using Deep Reinforcement Learning, Computer Vision, and Multi-Agent coordination for optimizing urban traffic flow.**
+> **World-class intelligent traffic signal control system using Advanced Reinforcement Learning (Model-Based RL, Hierarchical RL, Transformer agents), Classical Controllers, Computer Vision, and Multi-Agent coordination for optimizing urban traffic flow.**
 
 ## **Overview**
 
-The **Adaptive Traffic Signal Control System** is a cutting-edge AI-powered solution that revolutionizes urban traffic management. By combining **Deep Q-Network (DQN) reinforcement learning**, **real-time computer vision**, and **traffic forecasting**, this system achieves up to **40% reduction in wait times** and **30% increase in traffic throughput** compared to traditional fixed-time signals.
+The **Adaptive Traffic Signal Control System** is a cutting-edge AI-powered solution that revolutionizes urban traffic management. By combining **13+ advanced control strategies** (Model-Based RL, Hierarchical RL, Transformer agents, classical controllers), **real-time computer vision**, and **traffic forecasting**, this system achieves up to **40% reduction in wait times** and **30% increase in traffic throughput** compared to traditional fixed-time signals.
 
 ### **Key Features**
 
-- **AI-Powered Decision Making**: DQN agents learn optimal signal timing strategies
+- **AI-Powered Decision Making**: 13+ control strategies from classical to cutting-edge
+- **Advanced RL**: Model-Based RL with world models, Hierarchical RL, Transformer agents
 - **Real-Time Vision Processing**: YOLOv8-based vehicle detection and queue estimation
-- **Traffic Forecasting**: CNN-LSTM models predict future traffic conditions
+- **Traffic Forecasting**: CNN-LSTM and GNN models predict future traffic conditions
 - **Multi-Agent Coordination**: City-wide intersection networks with MARL
 - **Real-Time Performance**: Sub-microsecond decision making
-- **Multiple Control Strategies**: DQN, Fuzzy Logic, Webster's Method, Genetic Algorithms
+- **Multiple Paradigms**: Deep RL, Imitation Learning, Meta-Learning, Probabilistic, Explainable AI
 - **Comprehensive Analytics**: TensorBoard integration and performance monitoring
 
 ### **Performance Results**
 
-| **Algorithm** | **Wait Time** | **Queue Length** | **Efficiency** | **Grade** |
-|---------------|---------------|------------------|----------------|-----------|
-| **Fuzzy Control** | 8.51s | 12.5 vehicles | 1.2123 | **A+** |
-| **GNN Forecasting** | 13.58s | 15.4 vehicles | 1.1848 | **A** |
-| **DQN (6000 episodes)** | 21.47s | 23.4 vehicles | 1.2064 | **B+** |
-| **Traditional (Webster)** | 27.37s | 24.9 vehicles | 1.1612 | **C** |
+| **Technology** | **Wait Time** | **Queue Length** | **Status** | **Category** |
+|----------------|---------------|------------------|------------|--------------|
+| **Fuzzy Logic** | **8.51s** | 12.5 vehicles | ✅ Production | Classical |
+| **GNN Forecasting** | 13.58s | 15.4 vehicles | ✅ Production | Forecasting |
+| **DQN** | 21.47s | 23.4 vehicles | ✅ Production | RL Baseline |
+| **Webster Method** | 27.37s | 24.9 vehicles | ✅ Production | Classical |
+| **Model-Based RL** | *Training* | - | ✅ Research | Advanced RL |
+| **Hierarchical RL** | *Training* | - | ✅ Research | Advanced RL |
+| **Transformer Agent** | *Training* | - | ✅ Research | Advanced RL |
 
 ## **Quick Start**
 
@@ -77,10 +81,13 @@ python demo_professional.py
 ### **Basic Training**
 
 ```bash
-# Quick training (5 episodes)
+# Train all technologies and compare (recommended)
+python scripts/train_all_technologies.py --episodes 2000
+
+# Quick training specific strategy
 python src/rl/train_dqn.py --episodes 5 --config configs/intersection.json
 
-# Production training (6000 episodes)
+# Production training
 python src/rl/train_dqn_pytorch.py --episodes 6000 --out runs/production
 
 # Multi-agent training
@@ -142,7 +149,7 @@ graph TB
     end
     
     subgraph "Decision Layer"
-        H[DQN Agent] --> I[Action Selection]
+        H[Control Agents<br/>13+ Strategies] --> I[Action Selection]
         J[Fuzzy Controller] --> I
         K[Traffic Forecaster] --> I
     end
@@ -162,10 +169,11 @@ graph TB
 ```
 adaptive_traffic/
 ├── src/                     # Source code
-│   ├── rl/                    # Reinforcement Learning (DQN, training, inference)
+│   ├── rl/                    # Reinforcement Learning (DQN, agents)
+│   ├── research/              # Advanced algorithms (Model-Based RL, Hierarchical RL, etc.)
 │   ├── env/                   # Environments (Traffic, SUMO, MARL, Video)
 │   ├── vision/                # Computer Vision (YOLOv8, ROI processing)
-│   ├── forecast/              # Traffic Forecasting (CNN-LSTM models)
+│   ├── forecast/              # Traffic Forecasting (CNN-LSTM, GNN models)
 │   ├── control/               # Control Strategies (Fuzzy, Webster, GA, PSO)
 │   └── utils/                 # Utilities (config, metrics, health)
 ├── configs/                 # Configuration files for scenarios
@@ -253,7 +261,7 @@ python src/main.py --config configs/production.json
 
 ### **Docker Deployment**
 
-```dockerfile
+``dockerfile
 # Dockerfile example
 FROM python:3.11-slim
 

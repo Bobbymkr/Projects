@@ -65,7 +65,7 @@ graph TB
 ## System Components Description
 
 ### Core System
-- **Adaptive Traffic Signal Control System**: The central intelligent system that processes inputs, makes decisions, and controls traffic signals using deep reinforcement learning, computer vision, and traffic forecasting.
+- **Adaptive Traffic Signal Control System**: The central intelligent system that processes inputs, makes decisions, and controls traffic signals using advanced control methods (Model-Based RL with world models and MPC, Hierarchical RL, transformer-based agents), classical controllers (fuzzy logic, Webster), computer vision, and traffic forecasting.
 
 ### External Actors
 
@@ -146,7 +146,7 @@ graph TB
 
 1. **Input Processing**: Camera systems provide real-time video feeds that are processed using computer vision (YOLOv8) to detect vehicle queues and traffic conditions.
 
-2. **Decision Making**: The core system uses deep reinforcement learning (DQN) agents, traffic forecasting models, and control strategies to determine optimal signal timing.
+2. **Decision Making**: The core system uses advanced reinforcement learning (Model-Based RL, Hierarchical RL, Transformer-based agents) and classical controllers (Fuzzy, Webster), integrated with traffic forecasting models, to determine optimal signal timing.
 
 3. **Signal Control**: Control commands are sent to traffic signal controllers to implement timing decisions and optimize traffic flow.
 
@@ -158,7 +158,7 @@ graph TB
 
 - **Real-time Processing**: Continuous processing of video feeds and traffic data
 - **Adaptive Learning**: Self-improving system that learns from traffic patterns
-- **Multi-modal Control**: Supports various control strategies (DQN, fuzzy logic, Webster method)
+- **Multi-modal Control**: Supports various control strategies (Model-Based RL, Hierarchical RL, Transformer-based RL, DQN, fuzzy logic, Webster method)
 - **Comprehensive Monitoring**: Full observability with metrics, logging, and visualization
 - **Scalable Architecture**: Modular design supporting single intersections to city-wide networks
 - **Safety Integration**: Fail-safe mechanisms and manual override capabilities

@@ -134,8 +134,16 @@ make clean          # Clean build artifacts
 - **MARLEnv** (`src/env/marl_env.py`): Multi-agent environment for city-wide coordination
 
 **Decision Layer:**
-- **DQN Agent** (`src/rl/`): Deep Q-Network reinforcement learning agents (standard, double, dueling)
-- **Fuzzy Controller** (`src/control/fuzzy_controller.py`): Rule-based fuzzy logic control
+- **Control Agents** (`src/rl/` and `src/research/`): 13+ strategies including:
+  - **Advanced RL**: Model-Based RL (WorldModel + MPC), Hierarchical RL, Transformer agents
+  - **Deep RL**: DQN agents (standard, double, dueling)
+  - **Imitation Learning**: Behavioral Cloning, DAgger, Hybrid IL-RL
+  - **Probabilistic**: Bayesian RL for uncertainty quantification
+  - **Explainable AI**: Causal RL, NeuroSymbolic agents
+  - **Meta-Learning**: MAML, Reptile for fast adaptation
+  - **Classical**: Fuzzy Logic, Webster Method
+  - **Experimental**: LLM Agent, Diffusion Agent
+- **Fuzzy Controller** (`src/control/fuzzy_controller.py`): Rule-based fuzzy logic control (best: 8.51s)
 - **Webster's Method** (`src/control/webster.py`): Traditional fixed-time signal optimization
 - **Genetic Algorithm** (`src/control/ga_controller.py`): Evolutionary optimization approach
 - **PSO Controller** (`src/control/pso_controller.py`): Particle Swarm Optimization
@@ -147,7 +155,7 @@ make clean          # Clean build artifacts
 ### Data Flow
 1. **Input**: Video stream/camera → YOLOv8 detection
 2. **Processing**: Detection outputs → State encoder → Queue/density metrics
-3. **Decision**: State → RL Agent/Controller → Action selection
+3. **Decision**: State → Control Agent (strategy selection) → Action selection
 4. **Control**: Action → Signal phase/timing adjustment
 5. **Feedback**: Environment response → Reward calculation → Agent learning
 

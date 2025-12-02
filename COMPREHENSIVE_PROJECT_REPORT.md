@@ -24,12 +24,12 @@ The **Adaptive Traffic Signal Control System** is a state-of-the-art intelligent
 5. **Research Platform**: Extensible framework for traffic control research
 
 ### 1.3 Key Features
-- **Deep Q-Network (DQN)** reinforcement learning for signal control
+- **Advanced Control Strategies**: 13+ methods including Model-Based RL, Hierarchical RL, Transformer agents
 - **Multi-Agent Reinforcement Learning (MARL)** for network-wide coordination
 - **Computer Vision** pipeline using YOLOv8 for real-time vehicle detection
-- **LSTM-based Traffic Forecasting** for predictive control
+- **LSTM/GNN Traffic Forecasting** for predictive control
 - **SUMO Integration** for realistic traffic simulation
-- **Multiple Optimization Algorithms** (Genetic Algorithm, PSO, Fuzzy Logic)
+- **Multiple Paradigms**: Deep RL, Imitation Learning, Meta-Learning, Classical Controllers
 - **Professional Monitoring** and alerting systems
 
 ---
@@ -61,11 +61,16 @@ adaptive_traffic/
 - **SumoEnv**: SUMO simulation integration
 - **VideoEnv**: Real-time camera feed processing
 
-#### 2.2.2 Reinforcement Learning Layer (`src/rl/`)
-- **DQN Agent**: Custom implementation with prioritized experience replay
-- **Training Pipeline**: Configurable training with hyperparameter optimization
-- **Inference Engine**: Real-time decision making
-- **Benchmarking Tools**: Performance comparison utilities
+#### 2.2.2 Reinforcement Learning & Control Layer (`src/rl/` and `src/research/`)
+- **Advanced RL Agents**: Model-Based RL, Hierarchical RL, Transformer agents
+- **Deep RL**: DQN with prioritized experience replay
+- **Imitation Learning**: Behavioral Cloning, DAgger, Hybrid IL-RL
+- **Probabilistic Methods**: Bayesian RL for uncertainty quantification
+- **Explainable AI**: Causal RL, NeuroSymbolic agents
+- **Meta-Learning**: MAML, Reptile for fast adaptation
+- **Classical Controllers**: Fuzzy Logic, Webster Method
+- **Training Pipeline**: Unified training for all technologies with benchmarking
+- **Inference Engine**: Real-time decision making with strategy selection
 
 #### 2.2.3 Computer Vision Layer (`src/vision/`)
 - **YOLO Queue Estimator**: Vehicle detection and queue length estimation
@@ -218,29 +223,43 @@ adaptive_traffic/
 
 ## 4. Core Implementations
 
-### 4.1 Deep Q-Network (DQN) Agent
+### 4.1 Control Agents (13+ Strategies)
 
-#### 4.1.1 Architecture
-- **Neural Network**: 3-layer fully connected network (128 hidden units)
-- **Activation**: ReLU activations with He initialization
-- **Implementation**: Custom NumPy implementation for educational clarity
-- **Optimizer**: Adam optimizer with configurable learning rates
+#### 4.1.1 Advanced RL Technologies
+- **Model-Based RL**: WorldModel + MPC planning with convergence optimization
+- **Hierarchical RL**: High-level phase selection + low-level timing control
+- **Transformer Agent**: Sequence modeling for temporal pattern recognition
+- **DQN Agent**: Value-based deep reinforcement learning (baseline)
 
-#### 4.1.2 Advanced Features
-- **Prioritized Experience Replay**: SumTree implementation for efficient sampling
-- **Double DQN**: Reduces overestimation bias
-- **Target Network**: Periodic soft updates for stability
-- **Epsilon-Greedy Exploration**: Decaying exploration strategy
+#### 4.1.2 Imitation Learning
+- **Behavioral Cloning**: Learning from expert demonstrations
+- **DAgger**: Dataset Aggregation for interactive imitation learning
+- **Hybrid IL-RL**: Combined imitation and reinforcement learning
 
-#### 4.1.3 Code Architecture
+#### 4.1.3 Probabilistic & Explainable AI
+- **Bayesian RL**: Uncertainty quantification in decision making
+- **Causal RL**: Causal inference for interpretable control
+- **NeuroSymbolic Agent**: Symbolic constraints with neural learning
+
+#### 4.1.4 Meta-Learning
+- **MAML**: Model-Agnostic Meta-Learning for fast adaptation
+- **Reptile**: Efficient meta-learning variant
+
+#### 4.1.5 Classical Controllers
+- **Fuzzy Logic**: Rule-based control (best performance: 8.51s wait time)
+- **Webster Method**: Analytical signal timing
+
+#### 4.1.6 Unified Training
 ```python
-class DQNAgent:
-    def __init__(self, state_dim, action_dim, lr=1e-3):
-        self.q_net = QNet(state_dim, action_dim)
-        self.target_net = QNet(state_dim, action_dim)
-        self.replay_buffer = PrioritizedReplayBuffer(capacity=10000)
-        self.optimizer = Adam(self.q_net.params, lr=lr)
+# Train all technologies with single command
+python scripts/train_all_technologies.py --episodes 2000
 ```
+
+**Features**:
+- Automatic benchmarking and comparison
+- Convergence detection and early stopping
+- Handles different agent APIs (select_action, predict, compute_timing)
+- Model checkpointing and results logging
 
 ### 4.2 Traffic Environment
 

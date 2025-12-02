@@ -45,7 +45,7 @@ graph TB
     subgraph "Core Processing Pipeline"
         VP[1.0<br/>Video Processing<br/>Pipeline]
         SA[2.0<br/>State Assembly<br/>& Normalization]
-        IA[3.0<br/>Intelligence Agent<br/>DQN Decision Making]
+        IA[3.0<br/>Decision Layer<br/>Model-Based RL / Hierarchical RL / Controllers]
         SC[4.0<br/>Signal Control<br/>& Execution]
     end
     
@@ -150,54 +150,79 @@ graph TB
         FP[3.2<br/>Feature Processing<br/>Normalization]
     end
     
-    subgraph "Decision Making"
-        NN[3.3<br/>Neural Network<br/>Q-Value Computation]
-        AS[3.4<br/>Action Selection<br/>ε-greedy Strategy]
-        AP[3.5<br/>Action Processing<br/>Duration Mapping]
+    subgraph "Decision Strategies"
+        subgraph "Model-Based RL"
+            WM[3.3<br/>World Model<br/>Dynamics Learning]
+            MPC[3.4<br/>Model Predictive Control<br/>Planning (MPC)]
+        end
+        
+        subgraph "Hierarchical RL"
+            HP[3.5<br/>High-Level Policy<br/>Phase Selection]
+            LP[3.6<br/>Low-Level Policy<br/>Timing Control]
+        end
+        
+        subgraph "RL Agents"
+            TR[3.7<br/>Transformer Agent<br/>Sequence Modeling]
+            DQ[3.8<br/>DQN Agent<br/>Value-based]
+        end
+        
+        subgraph "Classical Controllers"
+            FZ[3.9<br/>Fuzzy Controller<br/>Rule-based]
+            WB[3.10<br/>Webster Method<br/>Analytical]
+        end
     end
     
     subgraph "Learning System"
-        ER[3.6<br/>Experience Replay<br/>Buffer Management]
-        TN[3.7<br/>Target Network<br/>Stability Control]
-        LO[3.8<br/>Loss Optimization<br/>Gradient Descent]
-    end
-    
-    subgraph "Forecasting Integration"
-        TF[3.9<br/>Traffic Forecasting<br/>LSTM Prediction]
-        PA[3.10<br/>Predictive Analysis<br/>Future State Estimation]
+        ER[3.11<br/>Experience/Transition Buffer]
+        WM_TRAIN[3.12<br/>World Model Training]
+        NN_TRAIN[3.13<br/>Policy/Value Training]
+        LOG[3.14<br/>Training History]
     end
     
     subgraph "Data Stores"
         DS3[(D3: Model<br/>Weights)]
-        DS6[(D6: Replay<br/>Buffer)]
+        DS6[(D6: Replay/Transition<br/>Buffer)]
         DS7[(D7: Training<br/>History)]
     end
     
-    SI -->|Current State| SF
-    SF -->|Fused State| FP
-    FP -->|Processed Features| NN
-    FP -->|Historical Sequence| TF
+    SI --> SF
+    SF --> FP
     
-    NN -->|Q-Values| AS
-    TF -->|Future Predictions| PA
-    PA -->|Augmented State| NN
+    FP --> WM
+    FP --> HP
+    HP --> LP
+    FP --> TR
+    FP --> DQ
+    FP --> FZ
+    FP --> WB
     
-    AS -->|Selected Action| AP
-    AP -->|Green Duration<br/>Signal Timing| SC[Signal Control]
+    WM --> MPC
+    MPC --> AP[Action Proposal]
+    HP --> AP
+    LP --> AP
+    TR --> AP
+    DQ --> AP
+    FZ --> AP
+    WB --> AP
+    
+    AP --> SC[Signal Control]
     
     %% Learning flows
-    SF -->|State-Action-Reward| ER
-    ER -->|Training Batch| LO
-    LO -->|Parameter Updates| NN
-    NN -->|Weight Copy| TN
+    SF --> ER
+    ER --> WM_TRAIN
+    ER --> NN_TRAIN
+    WM_TRAIN --> WM
+    NN_TRAIN --> TR
+    NN_TRAIN --> DQ
     
     %% Data store interactions
-    DS3 -->|Trained Weights| NN
-    DS3 -->|Target Weights| TN
-    ER -->|Experiences| DS6
-    DS6 -->|Replay Samples| ER
-    LO -->|Training Metrics| DS7
-    NN -->|Updated Weights| DS3
+    DS3 --> TR
+    DS3 --> DQ
+    DS6 --> ER
+    NN_TRAIN --> DS7
+    TR --> DS3
+    DQ --> DS3
+    WM --> DS3
 ```
 
 ## Real-Time Processing Data Flow
@@ -209,7 +234,7 @@ sequenceDiagram
     participant Buffer as Frame Buffer
     participant YOLO as YOLO Detector
     participant Tracker as Object Tracker
-    participant Agent as DQN Agent
+    participant Agent as Control Agent
     participant Controller as Signal Controller
     participant Logger as Performance Logger
 
@@ -243,11 +268,17 @@ graph LR
         ENV[Environment State<br/>Queue/Wait Times]
     end
     
-    subgraph "Training Pipeline"
-        AGENT[DQN Agent<br/>Learning]
-        RB[Replay Buffer<br/>Experience Storage]
-        TN[Target Network<br/>Stable Targets]
-        OPT[Optimizer<br/>Adam/SGD]
+    subgraph "RL Training"
+        DECISION[Control Agent<br/>DQN/Transformer/Hierarchical]
+        RB[Replay/Transition Buffer]
+        TN[Target Network<br/>Stability (value-based)]
+        OPT[Optimizer<br/>SGD/Adam]
+    end
+    
+    subgraph "Model-Based Training"
+        WM[World Model<br/>Dynamics Learner]
+        WM_BUF[Transition Buffer<br/>s,a,s',r]
+        WM_OPT[Optimizer<br/>Model Updates]
     end
     
     subgraph "Monitoring"
@@ -256,21 +287,27 @@ graph LR
         SAVE[Model Checkpoints<br/>Weight Persistence]
     end
     
-    SUMO -->|Traffic State| TI
-    TI -->|Observations| ENV
-    ENV -->|State Vector| AGENT
-    AGENT -->|Actions| ENV
-    ENV -->|Rewards| AGENT
+    SUMO --> TI
+    TI --> ENV
+    ENV --> DECISION
+    DECISION --> ENV
+    ENV --> DECISION
     
-    AGENT -->|Experiences| RB
-    RB -->|Training Batch| AGENT
-    AGENT -->|Q-Values| OPT
-    TN -->|Target Q-Values| OPT
-    OPT -->|Weight Updates| AGENT
+    DECISION --> RB
+    RB --> DECISION
+    DECISION --> TN
+    DECISION --> OPT
+    OPT --> DECISION
     
-    AGENT -->|Training Metrics| TB
-    AGENT -->|Performance Data| LOG
-    AGENT -->|Model Weights| SAVE
+    ENV --> WM_BUF
+    WM_BUF --> WM
+    WM --> WM_OPT
+    WM_OPT --> WM
+    
+    DECISION --> TB
+    DECISION --> LOG
+    DECISION --> SAVE
+    WM --> SAVE
 ```
 
 ## Data Transformation Processes

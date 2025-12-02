@@ -24,10 +24,10 @@ graph TB
     end
     
     subgraph "Core Intelligence Layer"
-        DQN[DQN Agent<br/>Deep Q-Network]
+        CTRL[Control Agents<br/>13+ Strategies]
         MAC[Multi-Agent Coordinator<br/>MARL Environment]
         TF[Traffic Forecaster<br/>LSTM/GNN Models]
-        CS[Control Strategies<br/>Fuzzy Logic & Webster]
+        CS[Classical Controllers<br/>Fuzzy Logic & Webster]
     end
     
     subgraph "Perception Layer"
@@ -60,33 +60,33 @@ graph TB
     REST --> VE
     CLI --> CM
     
-    PM --> DQN
+    PM --> CTRL
     PM --> MAC
-    CM --> DQN
+    CM --> CTRL
     CM --> TF
-    VE --> DQN
+    VE --> CTRL
     VE --> TF
     SM --> REST
     
-    DQN --> CVP
-    DQN --> TE
-    MAC --> DQN
+    CTRL --> CVP
+    CTRL --> TE
+    MAC --> CTRL
     MAC --> TE
-    TF --> DQN
+    TF --> CTRL
     CS --> TE
     
     CVP --> YOLO
     YOLO --> VT
     VT --> QE
-    QE --> DQN
+    QE --> CTRL
     
     TE --> SUMO
     ME --> SUMO
     VE2 --> CVP
-    DQN --> TE
+    CTRL --> TE
     
-    DQN --> PL
-    DQN --> MS
+    CTRL --> PL
+    CTRL --> MS
     TF --> MS
     CM --> CR
     CVP --> FS
@@ -123,17 +123,29 @@ graph TB
 
 ### 3. Core Intelligence Layer
 **Purpose**: Decision-making and control algorithms
-- **DQN Agent**: Deep Q-Network for adaptive signal control
+- **Control Agents**: 13+ strategies including:
+  - **Advanced RL**: Model-Based RL (WorldModel + MPC), Hierarchical RL, Transformer agents
+  - **Deep RL**: DQN, value-based learning
+  - **Imitation Learning**: Behavioral Cloning, DAgger, Hybrid IL-RL
+  - **Probabilistic**: Bayesian RL (uncertainty quantification)
+  - **Explainable AI**: Causal RL, NeuroSymbolic agents
+  - **Meta-Learning**: MAML, Reptile (fast adaptation)
+  - **Classical**: Fuzzy Logic, Webster Method
+  - **Experimental**: LLM Agent, Diffusion Agent
 - **Multi-Agent Coordinator**: Coordination across multiple intersections
 - **Traffic Forecaster**: LSTM/GNN models for traffic prediction
-- **Control Strategies**: Traditional methods (fuzzy logic, Webster method)
+- **Classical Controllers**: Traditional methods (fuzzy logic, Webster method)
 
 **Key Algorithms**:
-- Deep Reinforcement Learning (DQN, Double DQN)
+- Model-Based RL with world models and MPC planning
+- Hierarchical RL with high-level and low-level policies
+- Transformer-based sequence modeling
+- Deep Reinforcement Learning (DQN, value-based)
 - Multi-Agent Reinforcement Learning (MARL)
 - Time-series forecasting (CNN-LSTM hybrid)
 - Graph Neural Networks for spatial traffic modeling
 - Fuzzy logic control systems
+- Meta-learning for rapid adaptation
 
 ### 4. Perception Layer
 **Purpose**: Real-world data acquisition and processing
@@ -182,7 +194,7 @@ graph TB
 sequenceDiagram
     participant Camera as Camera System
     participant Vision as Vision Pipeline
-    participant Agent as DQN Agent
+    participant Agent as Control Agent
     participant Environment as Traffic Environment
     participant Controller as Signal Controller
     participant Storage as Data Storage
@@ -192,7 +204,7 @@ sequenceDiagram
     Vision->>Vision: Queue Estimation
     Vision->>Agent: Traffic State
     
-    Agent->>Agent: Q-Value Computation
+    Agent->>Agent: Strategy Selection (Model-Based/Hierarchical/Classical)
     Agent->>Environment: Action (Green Duration)
     Environment->>Controller: Signal Commands
     Controller->>Environment: Status Feedback

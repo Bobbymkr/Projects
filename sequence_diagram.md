@@ -14,7 +14,7 @@ sequenceDiagram
     participant VP as Video Pipeline
     participant CV as Computer Vision
     participant QE as Queue Estimator
-    participant DQN as DQN Agent
+    participant AG as Control Agent
     participant ENV as Environment
     participant SC as Signal Controller
     participant LOG as Performance Logger
@@ -24,13 +24,8 @@ sequenceDiagram
     
     loop Continuous Video Processing
         CAM->>VP: Video Frame (30 FPS)
-        VP->>VP: Frame Preprocessing
         VP->>CV: Processed Frame
-        CV->>CV: ROI Extraction
-        CV->>CV: YOLO Vehicle Detection
         CV->>QE: Vehicle Detections
-        QE->>QE: Object Tracking
-        QE->>QE: Queue Length Calculation
         QE->>MON: Queue Metrics
     end
     
@@ -39,31 +34,29 @@ sequenceDiagram
     rect rgb(255, 245, 238)
         Note over QE, ENV: Signal Timing Decision Process
         QE->>ENV: Current Queue State [q1, q2, q3, q4]
-        ENV->>ENV: State Normalization
-        ENV->>DQN: Normalized State Vector
+        ENV->>AG: Normalized State Vector
         
-        DQN->>DQN: Forward Pass (Neural Network)
-        DQN->>DQN: Q-Value Computation
-        DQN->>DQN: Action Selection (ε-greedy)
-        DQN->>ENV: Selected Action (Green Duration)
+        alt Model-Based RL (converged)
+            AG->>AG: MPC Planning (horizon/candidates reduced)
+            AG->>SC: Green Duration Command
+        else Hierarchical RL
+            AG->>AG: High-Level Phase Selection
+            AG->>AG: Low-Level Timing Control
+            AG->>SC: Signal Command (Phase + Duration)
+        else Classical Controllers (Fuzzy/Webster)
+            AG->>AG: Rule-based/Analytical Computation
+            AG->>SC: Signal Command (Phase + Duration)
+        end
         
-        ENV->>ENV: Action Validation
-        ENV->>SC: Signal Command (Phase + Duration)
-        SC->>SC: Hardware Execution
         SC->>ENV: Status Confirmation
-        
-        ENV->>ENV: Reward Calculation
-        ENV->>DQN: Reward Signal
-        DQN->>DQN: Experience Storage
-        DQN->>LOG: Performance Metrics
+        ENV->>AG: Reward Signal
+        AG->>LOG: Performance Metrics
     end
     
     Note over SC, MON: Signal Execution Phase
     
     loop Green Phase Execution
         SC->>SC: Maintain Green Signal
-        CAM->>VP: Continue Video Stream
-        VP->>QE: Queue Monitoring
         QE->>MON: Real-time Metrics
         MON->>LOG: System Status
     end
@@ -149,7 +142,7 @@ sequenceDiagram
     participant TRACK as Object Tracker
     participant QE as Queue Estimator
     participant VE as Video Environment
-    participant DQN as DQN Agent
+    participant AG as Control Agent
     participant HC as Hardware Controller
     participant WS as WebSocket Server
     participant DASH as Dashboard
@@ -178,27 +171,29 @@ sequenceDiagram
     rect rgb(240, 248, 255)
         Note over VE, HC: Signal Control Decision
         VE->>VE: State Normalization
-        VE->>DQN: Normalized Observations
+        VE->>AG: Normalized Observations
         
-        DQN->>DQN: Neural Network Forward Pass
-        DQN->>DQN: Q-Value Computation
-        DQN->>DQN: Best Action Selection
-        DQN->>VE: Green Duration Command
+        alt Model-Based RL (converged)
+            AG->>AG: MPC Planning (reduced horizon/candidates)
+            AG->>HC: Signal Control Message
+        else Hierarchical RL
+            AG->>AG: High-Level Phase Selection
+            AG->>AG: Low-Level Timing Control
+            AG->>HC: Signal Control Message
+        else Classical Controllers
+            AG->>AG: Fuzzy/Webster Computation
+            AG->>HC: Signal Control Message
+        end
         
-        VE->>VE: Validate Action
-        VE->>HC: Signal Control Message
-        HC->>HC: Execute Signal Change
         HC->>VE: Acknowledgment
-        
-        VE->>VE: Calculate Reward
-        VE->>DQN: Performance Feedback
+        VE->>AG: Performance Feedback
     end
     
     Note over WS, DASH: Real-Time Monitoring
     
     par Real-Time Updates
         QE->>WS: Queue Statistics
-        DQN->>WS: Agent Decisions
+        AG->>WS: Agent Decisions
         VE->>WS: Environment State
         HC->>WS: Signal Status
     and

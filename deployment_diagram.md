@@ -11,7 +11,7 @@ graph TB
             direction TB
             ECS[Edge Computing Server<br/>Intel NUC / Industrial PC]
             CVP[Computer Vision Process<br/>Python + OpenCV + YOLO]
-            DQN[DQN Agent Process<br/>NumPy + Inference Engine]
+            CTRL[Control Agent Process<br/>Model-Based RL / Hierarchical RL / Controllers]
             WEB[Local Web Server<br/>FastAPI + WebSocket]
             LDB[Local Database<br/>SQLite + Time Series]
         end
@@ -71,15 +71,15 @@ graph TB
     CAM3 -.->|RTSP Stream| CVP
     CAM4 -.->|RTSP Stream| CVP
     
-    CVP -->|State Data| DQN
-    DQN -->|Control Commands| TSC
+    CVP -->|State Data| CTRL
+    CTRL -->|Control Commands| TSC
     TSC -->|Hardware Control| TL1
     TSC -->|Hardware Control| TL2
     TSC -->|Hardware Control| PED
     
     ECS -.->|HTTPS/WSS| API
     TP -.->|Model Upload| MS
-    MS -.->|Model Download| DQN
+    MS -.->|Model Download| CTRL
     
     LAP -.->|HTTPS| API
     MOB -.->|HTTPS| API
@@ -166,7 +166,7 @@ graph TB
             end
             
             subgraph "DQN Container"
-                DQN_IMG[dqn-agent:latest<br/>Python 3.9<br/>NumPy 1.24<br/>Custom DQN Implementation]
+                DQN_IMG[control-agent:latest<br/>Python 3.9<br/>NumPy/PyTorch<br/>Model-Based RL/Hierarchical RL]
                 DQN_VOL[Volume: /data/models<br/>Volume: /data/checkpoints<br/>Volume: /data/logs]
             end
             
@@ -309,8 +309,8 @@ services:
           memory: 1G
 
   dqn-agent:
-    image: adaptive-traffic/dqn:latest
-    container_name: traffic-dqn
+    image: adaptive-traffic/control-agent:latest
+    container_name: traffic-control-agent
     restart: unless-stopped
     networks:
       - traffic-net
@@ -319,7 +319,8 @@ services:
       - ./data/checkpoints:/data/checkpoints
       - ./data/logs:/data/logs
     environment:
-      - MODEL_PATH=/data/models/dqn_traffic.npz
+      - MODEL_PATH=/data/models/control_agent.npz
+      - CONTROL_STRATEGY=model_based_rl  # or hierarchical_rl, fuzzy, webster
       - LOG_LEVEL=INFO
       - PERFORMANCE_LOG_PATH=/data/logs/performance.log
     depends_on:
