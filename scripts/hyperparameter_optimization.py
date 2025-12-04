@@ -73,6 +73,12 @@ class HyperparameterOptimizer:
             return self._get_mbrl_factory(trial)
         elif self.algorithm_name == "Imitation Learning (BC)":
             return self._get_il_factory(trial)
+        elif self.algorithm_name == "PPO":
+            return self._get_ppo_factory(trial)
+        elif self.algorithm_name == "SAC":
+            return self._get_sac_factory(trial)
+        elif self.algorithm_name == "Rainbow DQN":
+            return self._get_rainbow_factory(trial)
         else:
             # Default factory
             return lambda: self._create_default_agent(trial)
@@ -147,6 +153,93 @@ class HyperparameterOptimizer:
             hidden_dims=[hidden_dims_1, hidden_dims_2],
             learning_rate=learning_rate,
         )
+    
+    def _get_ppo_factory(self, trial: optuna.Trial):
+        """Get PPO factory with optimized hyperparameters."""
+        from src.research.novel_algorithms.phase6_advanced_rl import PPOAgent, PPOConfig
+        
+        # Hyperparameters from OPTIMIZATION_ROADMAP.md Phase 6.1
+        lr = trial.suggest_loguniform("lr", 1e-5, 1e-2)
+        gamma = trial.suggest_float("gamma", 0.90, 0.99)
+        gae_lambda = trial.suggest_float("gae_lambda", 0.90, 0.99)
+        clip_epsilon = trial.suggest_float("clip_epsilon", 0.1, 0.3)  # Conservative range
+        value_coef = trial.suggest_float("value_coef", 0.1, 1.0)
+        entropy_coef = trial.suggest_loguniform("entropy_coef", 1e-4, 1e-1)
+        train_epochs = trial.suggest_int("train_epochs", 4, 10)
+        batch_size = trial.suggest_categorical("batch_size", [32, 64, 128, 256])
+        buffer_size = trial.suggest_categorical("buffer_size", [1024, 2048, 4096])
+        
+        config = PPOConfig(
+            lr=lr,
+            gamma=gamma,
+            gae_lambda=gae_lambda,
+            clip_epsilon=clip_epsilon,
+            value_coef=value_coef,
+            entropy_coef=entropy_coef,
+            train_epochs=train_epochs,
+            batch_size=batch_size,
+            buffer_size=buffer_size,
+        )
+        
+        return lambda: PPOAgent(self.state_dim, self.action_dim, config)
+    
+    def _get_sac_factory(self, trial: optuna.Trial):
+        """Get SAC factory with optimized hyperparameters."""
+        from src.research.novel_algorithms.phase6_advanced_rl import SACAgent, SACConfig
+        
+        # Hyperparameters from OPTIMIZATION_ROADMAP.md Phase 6.2
+        lr = trial.suggest_loguniform("lr", 1e-5, 1e-2)
+        gamma = trial.suggest_float("gamma", 0.90, 0.99)
+        tau = trial.suggest_float("tau", 0.001, 0.01)  # Soft update coefficient
+        alpha = trial.suggest_loguniform("alpha", 0.01, 1.0)  # Temperature parameter
+        batch_size = trial.suggest_categorical("batch_size", [64, 128, 256, 512])
+        buffer_size = trial.suggest_categorical("buffer_size", [50000, 100000, 200000])
+        
+        config = SACConfig(
+            lr=lr,
+            gamma=gamma,
+            tau=tau,
+            alpha=alpha,
+            batch_size=batch_size,
+            buffer_size=buffer_size,
+        )
+        
+        return lambda: SACAgent(self.state_dim, self.action_dim, config)
+    
+    def _get_rainbow_factory(self, trial: optuna.Trial):
+        """Get Rainbow DQN factory with optimized hyperparameters."""
+        from src.research.novel_algorithms.phase6_advanced_rl import RainbowDQNAgent, RainbowDQNConfig
+        
+        # Hyperparameters from OPTIMIZATION_ROADMAP.md Phase 6.3
+        lr = trial.suggest_loguniform("lr", 1e-5, 1e-3)
+        gamma = trial.suggest_float("gamma", 0.90, 0.99)
+        n_steps = trial.suggest_int("n_steps", 1, 5)  # Multi-step learning
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128])
+        buffer_size = trial.suggest_categorical("buffer_size", [50000, 100000, 200000])
+        target_update_frequency = trial.suggest_categorical("target_update_frequency", [1000, 2000, 4000, 8000])
+        eps_start = trial.suggest_float("eps_start", 0.9, 1.0)
+        eps_end = trial.suggest_float("eps_end", 0.01, 0.1)
+        eps_decay = trial.suggest_int("eps_decay", 10000, 50000)
+        alpha = trial.suggest_float("alpha", 0.4, 0.8)  # PER priority exponent
+        beta = trial.suggest_float("beta", 0.2, 0.6)  # PER importance sampling
+        n_atoms = trial.suggest_categorical("n_atoms", [51, 101, 201])  # Distributional RL
+        
+        config = RainbowDQNConfig(
+            lr=lr,
+            gamma=gamma,
+            n_steps=n_steps,
+            batch_size=batch_size,
+            buffer_size=buffer_size,
+            target_update_frequency=target_update_frequency,
+            eps_start=eps_start,
+            eps_end=eps_end,
+            eps_decay=eps_decay,
+            alpha=alpha,
+            beta=beta,
+            n_atoms=n_atoms,
+        )
+        
+        return lambda: RainbowDQNAgent(self.state_dim, self.action_dim, config)
     
     def _create_default_agent(self, trial: optuna.Trial):
         """Create default agent (fallback)."""
@@ -244,7 +337,8 @@ def main():
         "--algorithm",
         type=str,
         required=True,
-        choices=["Transformer", "Hierarchical RL", "Model-Based RL", "Imitation Learning (BC)"],
+        choices=["Transformer", "Hierarchical RL", "Model-Based RL", "Imitation Learning (BC)", 
+                 "PPO", "SAC", "Rainbow DQN"],
         help="Algorithm to optimize"
     )
     parser.add_argument(

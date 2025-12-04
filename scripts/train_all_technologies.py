@@ -83,6 +83,21 @@ try:
 except ImportError:
     DiffusionTrafficAgent = None
 
+# Phase 6: Advanced RL Techniques
+try:
+    from src.research.novel_algorithms.phase6_advanced_rl import (
+        PPOAgent,
+        PPOConfig,
+        SACAgent,
+        SACConfig,
+        RainbowDQNAgent,
+        RainbowDQNConfig,
+    )
+except ImportError:
+    PPOAgent = None
+    SACAgent = None
+    RainbowDQNAgent = None
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -182,10 +197,14 @@ def train_technology(
                 elif hasattr(agent, 'add_transition'):
                     # For Model-Based RL
                     agent.add_transition(obs, action, reward, next_obs, done)
+                elif hasattr(agent, 'push'):
+                    # For PPO, SAC, Rainbow DQN
+                    agent.push(obs, action, reward, next_obs, done)
                 
                 # Train step (if agent supports it)
                 # Train more frequently for Model-Based RL (needs world model training)
-                train_interval = 2 if 'Model-Based' in tech_name else 10
+                # PPO trains on full episodes, so train at episode end
+                train_interval = 2 if 'Model-Based' in tech_name else (1 if 'PPO' in tech_name else 10)
                 # Also train every step for Model-Based RL until world model is trained
                 min_transitions = getattr(agent, 'min_transitions_for_training', 32)
                 should_train = (
@@ -210,6 +229,10 @@ def train_technology(
                             else:
                                 # deque or list - train without batch
                                 agent.train_step()
+                    elif hasattr(agent, 'buffer') and isinstance(agent.buffer, dict):
+                        # For PPO with on-policy buffer
+                        if len(agent.buffer.get('states', [])) >= agent.config.batch_size:
+                            agent.train_step()
                     elif hasattr(agent, 'transition_buffer'):
                         # For Model-Based RL with transition buffer
                         # Skip training if converged
@@ -222,10 +245,22 @@ def train_technology(
                                 agent.train_world_model(epochs=10, batch_size=32)
                             elif hasattr(agent, 'train_step'):
                                 agent.train_step()
+                    elif hasattr(agent, 'buffer') and hasattr(agent.buffer, '__len__'):
+                        # For SAC, Rainbow DQN with deque buffer
+                        if len(agent.buffer) >= getattr(agent.config, 'batch_size', 32):
+                            agent.train_step()
+                    else:
+                        # Default: train without buffer check
+                        agent.train_step()
                 
                 episode_reward += reward
                 episode_length += 1
                 obs = next_obs
+                
+                # For PPO: train at end of episode if buffer is full
+                if 'PPO' in tech_name and done and hasattr(agent, 'buffer'):
+                    if len(agent.buffer.get('states', [])) >= agent.config.batch_size:
+                        agent.train_step()
             
             episode_rewards.append(episode_reward)
             episode_lengths.append(episode_length)
@@ -320,6 +355,14 @@ def main():
         technologies["LLM"] = lambda: LLMTrafficAgent(state_dim, action_dim)
     if DiffusionTrafficAgent:
         technologies["Diffusion"] = lambda: DiffusionTrafficAgent(state_dim, action_dim)
+    
+    # Phase 6: Advanced RL Techniques
+    if PPOAgent:
+        technologies["PPO"] = lambda: PPOAgent(state_dim, action_dim, PPOConfig())
+    if SACAgent:
+        technologies["SAC"] = lambda: SACAgent(state_dim, action_dim, SACConfig())
+    if RainbowDQNAgent:
+        technologies["Rainbow DQN"] = lambda: RainbowDQNAgent(state_dim, action_dim, RainbowDQNConfig())
     
     # Filter technologies if specified
     if args.technologies:
