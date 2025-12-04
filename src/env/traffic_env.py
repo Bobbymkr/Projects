@@ -28,7 +28,16 @@ class TrafficEnv(gym.Env):
         self.all_red = int(self.cfg.get("cycle_all_red", 1))
         self.queue_capacity = int(self.cfg.get("queue_capacity", 40))
         self.arrival_rates = np.array(self.cfg.get("arrival_rates", [0.3] * self.num_lanes), dtype=float)
-        self.reward_weights = self.cfg.get("reward_weights", {"queue": -1.0, "wait_penalty": -0.1})
+        # Enhanced reward weights with multi-objective support
+        default_reward_weights = {
+            "queue": -0.4,
+            "wait_penalty": -0.3,
+            "throughput": 0.2,
+            "efficiency": 0.1,
+            "queue_reduction": 0.05,
+            "safety": -1000.0
+        }
+        self.reward_weights = self.cfg.get("reward_weights", default_reward_weights)
         self.episode_horizon = int(self.cfg.get("episode_horizon", 3600))  # 1 hour default
 
         # Validate configuration
@@ -57,6 +66,10 @@ class TrafficEnv(gym.Env):
         self.total_vehicles_processed = 0
         self.total_wait_time = 0.0
         self.max_queue_length = 0
+        
+        # Initialize reward tracking for enhanced reward function
+        self._prev_queue_sum = 0.0
+        self._accident_occurred = False
 
     def _validate_config(self):
         """Validate configuration parameters."""
@@ -103,21 +116,68 @@ class TrafficEnv(gym.Env):
         self.wait_times += self.queues * duration
         self.total_wait_time += np.sum(self.queues) * duration
 
-    def _compute_reward(self) -> float:
-        """Compute reward based on queue lengths and wait times."""
-        # Normalize queue penalty
-        queue_penalty = self.reward_weights.get("queue", -1.0) * float(np.sum(self.queues)) / self.queue_capacity
+    def _compute_reward(self, action: int = None, optimal_action: int = None) -> float:
+        """
+        Enhanced Multi-Objective Reward Function with proper normalization.
         
-        # Normalize wait time penalty
-        wait_penalty = self.reward_weights.get("wait_penalty", -0.1) * float(np.sum(self.wait_times)) / (self.episode_horizon * self.num_lanes)
+        Implements Phase 0.1 from OPTIMIZATION_ROADMAP.md:
+        - Multi-scale, hierarchical rewards
+        - Proper normalization for stability
+        - Shaped rewards for learning guidance
+        - Safety constraints with hard penalties
         
-        # Add efficiency bonus for processing vehicles
-        efficiency_bonus = 0.01 * self.total_vehicles_processed / max(1, self.time)
+        Args:
+            action: Current action taken (optional, for efficiency bonus)
+            optimal_action: Optimal action for current state (optional, for efficiency bonus)
         
-        # Add penalty for maximum queue length
-        max_queue_penalty = -0.05 * self.max_queue_length / self.queue_capacity
+        Returns:
+            Normalized reward value
+        """
+        # Primary Objectives (Weighted)
+        # Queue penalty: normalized by capacity
+        queue_penalty = self.reward_weights.get("queue", -0.4) * float(np.sum(self.queues)) / self.queue_capacity
         
-        return queue_penalty + wait_penalty + efficiency_bonus + max_queue_penalty
+        # Wait time penalty: normalized by episode horizon
+        wait_penalty = self.reward_weights.get("wait_penalty", -0.3) * float(np.sum(self.wait_times)) / (self.episode_horizon * self.num_lanes)
+        
+        # Throughput bonus: reward for vehicles cleared
+        throughput_bonus = self.reward_weights.get("throughput", 0.2) * self.total_vehicles_processed / max(1, self.time * self.num_lanes)
+        
+        # Efficiency bonus: reward for choosing good actions (if action info available)
+        efficiency_bonus = 0.0
+        if action is not None and optimal_action is not None:
+            action_error = abs(action - optimal_action) / max(1, len(self.green_values) - 1)
+            efficiency_bonus = self.reward_weights.get("efficiency", 0.1) * (1.0 - action_error)
+        
+        # Secondary Objectives (Shaping)
+        # Queue reduction bonus: reward for reducing queues
+        # This is computed per step, so we track previous queue state
+        if not hasattr(self, '_prev_queue_sum'):
+            self._prev_queue_sum = float(np.sum(self.queues))
+        
+        queue_reduction = self._prev_queue_sum - float(np.sum(self.queues))
+        queue_reduction_bonus = self.reward_weights.get("queue_reduction", 0.05) * max(0.0, queue_reduction) / self.queue_capacity
+        self._prev_queue_sum = float(np.sum(self.queues))
+        
+        # Safety Constraints (Hard penalties)
+        # Penalty for maximum queue length exceeding capacity
+        safety_penalty = 0.0
+        if self.max_queue_length >= self.queue_capacity:
+            safety_penalty = self.reward_weights.get("safety", -1000.0) * (self.max_queue_length - self.queue_capacity + 1) / self.queue_capacity
+        
+        # Penalty for accidents (if tracked in info)
+        if hasattr(self, '_accident_occurred') and self._accident_occurred:
+            safety_penalty += self.reward_weights.get("safety", -1000.0)
+        
+        # Combine all components
+        raw_reward = (queue_penalty + wait_penalty + throughput_bonus + 
+                     efficiency_bonus + queue_reduction_bonus + safety_penalty)
+        
+        # Normalization (Critical for stability)
+        # Normalize by expected scale to prevent reward explosion
+        normalized_reward = raw_reward / 100.0
+        
+        return normalized_reward
 
     def _normalize_observation(self, queues: np.ndarray) -> np.ndarray:
         """Normalize queue observations to [0, 1] range."""
@@ -137,6 +197,10 @@ class TrafficEnv(gym.Env):
         self.total_vehicles_processed = 0
         self.total_wait_time = 0.0
         self.max_queue_length = np.max(self.queues)
+        
+        # Initialize reward tracking for enhanced reward function
+        self._prev_queue_sum = float(np.sum(self.queues))
+        self._accident_occurred = False
         
         obs = self._normalize_observation(self.queues)
         info = {
@@ -171,7 +235,8 @@ class TrafficEnv(gym.Env):
         self.max_queue_length = max(self.max_queue_length, int(np.max(self.queues)))
 
         obs = self._normalize_observation(self.queues)
-        reward = self._compute_reward()
+        # Compute reward with action information (optimal_action not available, pass None)
+        reward = self._compute_reward(action=action, optimal_action=None)
         terminated = False
         # Tests expect truncation when time reaches episode_horizon - 1 (inclusive)
         truncated = self.time >= max(1, self.episode_horizon - 1)

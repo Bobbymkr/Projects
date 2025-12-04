@@ -1,0 +1,47 @@
+{
+  "timestamp": "2025-12-03T10:51:59.013508",
+  "validation_mode": "full",
+  "algorithms": {
+    "hierarchical_rl": {
+      "algorithm": "Hierarchical RL",
+      "timestamp": "2025-12-03T10:51:59.014063",
+      "tests": {
+        "instantiation": {
+          "status": "PASS",
+          "message": "Agent created successfully"
+        },
+        "error": {
+          "status": "FAIL",
+          "message": "matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 12 is different from 4)"
+        }
+      },
+      "overall_status": "FAIL"
+    },
+    "model_based_rl": {
+      "algorithm": "Model-Based RL",
+      "timestamp": "2025-12-03T10:51:59.016935",
+      "tests": {
+        "instantiation": {
+          "status": "PASS",
+          "message": "Agent created successfully"
+        },
+        "action_selection_untrained": {
+          "status": "PASS",
+          "message": "Selected action: 0",
+          "action": 0
+        },
+        "error": {
+          "status": "FAIL",
+          "message": "matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 13 is different from 5)",
+          "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\adaptive_traffic\\scripts\\validate_advanced_algorithms.py\", line 201, in validate_mbrl\n    model_stats = agent.train_world_model(epochs=10, batch_size=32)\n  File \"C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\adaptive_traffic\\src\\research\\novel_algorithms\\model_based_rl_complete.py\", line 327, in train_world_model\n    return self.world_model.train(\n           ~~~~~~~~~~~~~~~~~~~~~~^\n        self.transition_buffer,\n        ^^^^^^^^^^^^^^^^^^^^^^^\n        epochs=epochs,\n        ^^^^^^^^^^^^^^\n        batch_size=batch_size,\n        ^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\adaptive_traffic\\src\\research\\novel_algorithms\\model_based_rl_complete.py\", line 133, in train\n    pred_next_state = self.predict_transition(trans.state, trans.action)\n  File \"C:\\Users\\Admin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\adaptive_traffic\\src\\research\\novel_algorithms\\model_based_rl_complete.py\", line 79, in predict_transition\n    h1 = np.maximum(0, input_vec @ self.transition_W1 + self.transition_b1)\n                       ~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~\nValueError: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 13 is different from 5)\n"
+        }
+      },
+      "overall_status": "FAIL"
+    }
+  },
+  "summary": {
+    "hrl_status": "FAIL",
+    "mbrl_status": "FAIL",
+    "all_passed": false
+  }
+}

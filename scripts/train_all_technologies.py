@@ -21,14 +21,20 @@ from src.control.webster_method import WebsterMethod
 
 # Import all technologies
 try:
-    from src.research.novel_algorithms.hierarchical_rl_complete import HierarchicalRLAgent
+    from src.research.novel_algorithms.hierarchical_rl_complete import CompleteHierarchicalRLAgent as HierarchicalRLAgent
 except ImportError:
-    HierarchicalRLAgent = None
+    try:
+        from src.research.novel_algorithms.hierarchical_rl import HierarchicalRLAgent
+    except ImportError:
+        HierarchicalRLAgent = None
 
 try:
-    from src.research.novel_algorithms.model_based_rl_complete import ModelBasedRLAgent
+    from src.research.novel_algorithms.model_based_rl_complete import CompleteModelBasedRLAgent as ModelBasedRLAgent
 except ImportError:
-    ModelBasedRLAgent = None
+    try:
+        from src.research.novel_algorithms.model_based_rl import ModelBasedRLAgent
+    except ImportError:
+        ModelBasedRLAgent = None
 
 try:
     from src.research.novel_algorithms.imitation_learning_complete import (
@@ -111,6 +117,8 @@ def train_technology(
     try:
         for episode in range(episodes):
             obs, info = env.reset()
+            # Ensure state is properly normalized
+            obs = np.array(obs, dtype=np.float32).flatten()
             episode_reward = 0.0
             episode_length = 0
             done = False
@@ -165,21 +173,29 @@ def train_technology(
                 
                 next_obs, reward, terminated, truncated, step_info = env.step(action)
                 done = terminated or truncated
+                # Ensure next_obs is properly normalized
+                next_obs = np.array(next_obs, dtype=np.float32).flatten()
                 
                 # Store experience (if agent supports it)
                 if hasattr(agent, 'store_experience'):
                     agent.store_experience(obs, action, reward, next_obs, done)
+                elif hasattr(agent, 'add_transition'):
+                    # For Model-Based RL
+                    agent.add_transition(obs, action, reward, next_obs, done)
                 
                 # Train step (if agent supports it)
                 # Train more frequently for Model-Based RL (needs world model training)
                 train_interval = 2 if 'Model-Based' in tech_name else 10
                 # Also train every step for Model-Based RL until world model is trained
+                min_transitions = getattr(agent, 'min_transitions_for_training', 32)
                 should_train = (
                     episode % train_interval == 0 or 
                     ('Model-Based' in tech_name and 
                      hasattr(agent, 'world_model') and 
+                     hasattr(agent.world_model, 'is_trained') and
                      not agent.world_model.is_trained and
-                     len(agent.transition_buffer) >= agent.min_transitions_for_training)
+                     hasattr(agent, 'transition_buffer') and
+                     len(agent.transition_buffer) >= min_transitions)
                 )
                 if hasattr(agent, 'train_step') and should_train:
                     # Collect batch and train
@@ -200,8 +216,12 @@ def train_technology(
                         if hasattr(agent, 'is_converged') and agent.is_converged:
                             # Already converged, skip training
                             pass
-                        elif len(agent.transition_buffer) >= agent.min_transitions_for_training:
-                            agent.train_step()
+                        elif len(agent.transition_buffer) >= min_transitions:
+                            # Train world model
+                            if hasattr(agent, 'train_world_model'):
+                                agent.train_world_model(epochs=10, batch_size=32)
+                            elif hasattr(agent, 'train_step'):
+                                agent.train_step()
                 
                 episode_reward += reward
                 episode_length += 1
@@ -211,13 +231,14 @@ def train_technology(
             episode_lengths.append(episode_length)
             
             # Early stop for Model-Based RL when converged
-            if 'Model-Based' in tech_name and hasattr(agent, 'is_converged') and agent.is_converged:
+            is_converged = getattr(agent, 'is_converged', False)
+            if 'Model-Based' in tech_name and is_converged:
                 logger.info(f"Convergence achieved for Model-Based RL at episode {episode + 1}. Ending training early.")
                 break
             
             if (episode + 1) % 50 == 0:
                 avg_reward = np.mean(episode_rewards[-50:])
-                conv_status = " (converged)" if (hasattr(agent, 'is_converged') and agent.is_converged) else ""
+                conv_status = " (converged)" if is_converged else ""
                 logger.info(f"Episode {episode + 1}/{episodes}, Avg Reward: {avg_reward:.2f}{conv_status}")
         
         # Save model
@@ -231,7 +252,8 @@ def train_technology(
                 logger.warning(f"Could not save model: {e}")
         
         final_status = "success"
-        if hasattr(agent, 'is_converged') and agent.is_converged:
+        is_converged = getattr(agent, 'is_converged', False)
+        if is_converged:
             final_status = "success (converged)"
         
         logger.info(f"Completed {len(episode_rewards)} episodes for {tech_name}")
@@ -242,7 +264,7 @@ def train_technology(
             "final_reward": float(np.mean(episode_rewards[-10:])),
             "avg_length": float(np.mean(episode_lengths)),
             "status": final_status,
-            "converged": agent.is_converged if hasattr(agent, 'is_converged') else False,
+            "converged": is_converged,
         }
     
     except Exception as e:
