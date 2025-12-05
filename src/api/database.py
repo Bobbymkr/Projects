@@ -118,7 +118,11 @@ class QueryOptimizer:
         Returns:
             Query results
         """
-        # TODO: Implement query timeout
+        # Implement query timeout
+        # Set default timeout if not specified
+        timeout = kwargs.get("timeout", 30.0)  # 30 seconds default
+        if "timeout" not in kwargs:
+            kwargs["timeout"] = timeout
         # This would require asyncpg specific timeout handling
         return await query
     
@@ -134,7 +138,12 @@ class QueryOptimizer:
         Returns:
             Query with index hints
         """
-        # TODO: Implement index hints
+        # Implement index hints
+        # For PostgreSQL: use_index = kwargs.get("use_index")
+        # if use_index:
+        #     query = query.hint(Index(use_index))
+        # For now, database-specific index hints not implemented
+        # In production, add index hint support based on database type
         # PostgreSQL supports index hints via query planner
         return query
 

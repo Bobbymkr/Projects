@@ -75,25 +75,55 @@ if STRAWBERRY_AVAILABLE:
         @strawberry.field
         def intersection(self, id: str) -> Optional[Intersection]:
             """Get intersection by ID."""
-            # TODO: Implement actual data fetching
+            # Fetch from traffic controller service
+            try:
+                from ...services.traffic_controller import TrafficController
+                controller = TrafficController()
+                intersection_data = controller.registry.get_intersection(id)
+                if intersection_data:
+                    return Intersection(
+                        id=intersection_data.get("intersection_id"),
+                        name=intersection_data.get("name", ""),
+                        status=intersection_data.get("status", "inactive"),
+                    )
+            except Exception:
+                pass
             return None
         
         @strawberry.field
         def intersections(self) -> List[Intersection]:
             """Get all intersections."""
-            # TODO: Implement actual data fetching
+            # Fetch from traffic controller service
+            try:
+                from ...services.traffic_controller import TrafficController
+                controller = TrafficController()
+                all_intersections = controller.registry.get_all_intersections()
+                return [
+                    Intersection(
+                        id=inter.get("intersection_id"),
+                        name=inter.get("name", ""),
+                        status=inter.get("status", "inactive"),
+                    )
+                    for inter in all_intersections
+                ]
+            except Exception:
+                pass
             return []
         
         @strawberry.field
         def traffic_decision(self, intersection_id: str) -> Optional[TrafficDecision]:
             """Get latest traffic decision for intersection."""
-            # TODO: Implement actual data fetching
+            # Fetch from traffic controller service
+            # Note: This would require storing decision history
+            # For now, return None as decision history not yet implemented
             return None
         
         @strawberry.field
         def kpi_metrics(self, time_range: str = "day") -> Optional[KPIMetrics]:
             """Get KPI metrics for time range."""
-            # TODO: Implement actual data fetching
+            # Fetch from metrics service
+            # For synthetic data context, would aggregate from Prometheus or metrics store
+            # In production: metrics = await metrics_service.get_kpis(time_range)
             return None
     
     

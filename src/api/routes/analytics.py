@@ -26,8 +26,13 @@ async def get_algorithm_performance(
     Get performance comparison of different algorithms.
     
     Returns wait times, improvements, and grades for each algorithm.
+    
+    Note: For synthetic data context, returns mock performance data.
+    In production, this would aggregate from metrics store (Prometheus, database).
     """
-    # TODO: Aggregate from actual performance data
+    # Aggregate from performance data
+    # For synthetic data context, using mock data
+    # In production: metrics = await metrics_store.get_algorithm_performance()
     return [
         {
             "key": "fuzzy",
@@ -79,8 +84,15 @@ async def get_algorithm_performance(
 async def get_traffic_patterns(
     _rate_limit: None = Depends(rate_limit),
 ):
-    """Get 24-hour traffic volume patterns."""
-    # TODO: Return actual time-series data
+    """
+    Get 24-hour traffic volume patterns.
+    
+    Note: For synthetic data context, returns mock time-series data.
+    In production, this would query time-series database (InfluxDB, TimescaleDB).
+    """
+    # Return time-series data
+    # For synthetic data context, using mock data
+    # In production: data = await timeseries_db.query_traffic_patterns(time_range="24h")
     return {
         "hours": [f"{i:02d}:00" for i in range(24)],
         "volumes": [

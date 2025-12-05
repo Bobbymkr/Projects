@@ -36,15 +36,20 @@ def relu_grad(x: np.ndarray) -> np.ndarray:
 
 
 class Adam:
-    """Minimal Adam optimizer for lists of parameter arrays."""
-    def __init__(self, params: List[np.ndarray], lr=1e-3, betas=(0.9, 0.999), eps=1e-8):
+    """Minimal Adam optimizer for lists of parameter arrays with learning rate scheduling."""
+    def __init__(self, params: List[np.ndarray], lr=1e-3, betas=(0.9, 0.999), eps=1e-8, 
+                 lr_schedule="constant", lr_decay_steps=50000, lr_min=1e-6):
         self.params = params
+        self.initial_lr = lr
         self.lr = lr
         self.b1, self.b2 = betas
         self.eps = eps
         self.ms = [np.zeros_like(p) for p in params]
         self.vs = [np.zeros_like(p) for p in params]
         self.t = 0
+        self.lr_schedule = lr_schedule
+        self.lr_decay_steps = lr_decay_steps
+        self.lr_min = lr_min
 
     def step(self, grads: List[np.ndarray]):
         """Perform one optimization step using Adam algorithm.
@@ -53,6 +58,10 @@ class Adam:
             grads: List of gradient arrays corresponding to parameters
         """
         self.t += 1
+        
+        # Update learning rate based on schedule
+        self._update_learning_rate()
+        
         b1t = self.b1 ** self.t
         b2t = self.b2 ** self.t
         for i, (p, g) in enumerate(zip(self.params, grads)):
@@ -61,6 +70,28 @@ class Adam:
             m_hat = self.ms[i] / (1 - b1t)
             v_hat = self.vs[i] / (1 - b2t)
             p -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)
+    
+    def _update_learning_rate(self):
+        """Update learning rate based on schedule."""
+        if self.lr_schedule == "cosine":
+            # Cosine annealing
+            if self.t <= self.lr_decay_steps:
+                progress = self.t / self.lr_decay_steps
+                self.lr = self.lr_min + (self.initial_lr - self.lr_min) * (1 + math.cos(math.pi * progress)) / 2
+            else:
+                self.lr = self.lr_min
+        elif self.lr_schedule == "linear":
+            # Linear decay
+            if self.t <= self.lr_decay_steps:
+                progress = self.t / self.lr_decay_steps
+                self.lr = self.initial_lr - (self.initial_lr - self.lr_min) * progress
+            else:
+                self.lr = self.lr_min
+        # "constant" schedule: keep initial_lr
+    
+    def get_lr(self) -> float:
+        """Get current learning rate."""
+        return self.lr
 
 
 # ----------------- Q-Network (NumPy) -----------------
@@ -405,19 +436,50 @@ class DQNConfig:
     buffer_size: int = 50000
     warmup: int = 1000
     seed: int | None = 42
+    # Training stability parameters (Phase 0.2)
+    grad_clip_norm: float = 10.0  # Gradient clipping norm
+    use_soft_update: bool = True  # Use soft target network updates
+    soft_update_tau: float = 0.005  # Soft update coefficient
+    lr_schedule: str = "cosine"  # Learning rate schedule: "cosine", "linear", "constant"
+    lr_decay_steps: int = 50000  # Steps for LR decay
+    lr_min: float = 1e-6  # Minimum learning rate
+    # Prioritized Experience Replay (PER) parameters (Phase 2.2)
+    use_per: bool = False  # Enable Prioritized Experience Replay
+    per_alpha: float = 0.6  # Priority exponent (0=uniform, 1=fully prioritized)
+    per_beta: float = 0.4  # Importance sampling exponent (start value)
+    per_beta_increment: float = 0.001  # Beta annealing rate per sample
 
 
 class DQNAgent:
-    """NumPy-based DQN agent with target network and replay buffer."""
+    """NumPy-based DQN agent with target network, replay buffer, and training stability features."""
     def __init__(self, state_dim: int, action_dim: int, cfg: DQNConfig):
         self.cfg = cfg
         self.rng = np.random.default_rng(cfg.seed)
         self.q = QNet(state_dim, action_dim, hidden=128, seed=cfg.seed)
         self.target = QNet(state_dim, action_dim, hidden=128, seed=(cfg.seed or 0) + 1)
         self.target.copy_from(self.q)
-        self.buffer = ReplayBuffer(cfg.buffer_size, state_dim)
+        
+        # Initialize replay buffer (PER or uniform)
+        if cfg.use_per:
+            self.buffer = PrioritizedReplayBuffer(
+                cfg.buffer_size,
+                alpha=cfg.per_alpha,
+                beta=cfg.per_beta,
+                beta_increment=cfg.per_beta_increment
+            )
+            self.use_per = True
+        else:
+            self.buffer = ReplayBuffer(cfg.buffer_size, state_dim)
+            self.use_per = False
+        
         self.steps = 0
-        self.optimizer = Adam(self.q.params, lr=cfg.lr)
+        self.optimizer = Adam(
+            self.q.params, 
+            lr=cfg.lr,
+            lr_schedule=cfg.lr_schedule,
+            lr_decay_steps=cfg.lr_decay_steps,
+            lr_min=cfg.lr_min
+        )
         self.action_dim = action_dim
 
     def select_action(self, state: np.ndarray, evaluate: bool = False) -> int:
@@ -455,18 +517,69 @@ class DQNAgent:
             ns: Next state
             done: Episode termination flag
         """
-        self.buffer.add(s, a, r, ns, float(done))
+        if self.use_per:
+            # PrioritizedReplayBuffer in dqn_agent.py uses add() with tuple
+            experience = (s, a, r, ns, float(done))
+            self.buffer.add(experience)
+        else:
+            # ReplayBuffer uses add() method with individual args
+            self.buffer.add(s, a, r, ns, float(done))
 
+    def _clip_gradients(self, grads: List[np.ndarray], max_norm: float) -> List[np.ndarray]:
+        """
+        Clip gradients by norm (Phase 0.2: Training Stability).
+        
+        Args:
+            grads: List of gradient arrays
+            max_norm: Maximum gradient norm
+            
+        Returns:
+            Clipped gradients
+        """
+        # Compute total norm
+        total_norm = 0.0
+        for grad in grads:
+            total_norm += np.sum(grad ** 2)
+        total_norm = math.sqrt(total_norm)
+        
+        # Clip if necessary
+        if total_norm > max_norm:
+            clip_coef = max_norm / (total_norm + 1e-6)
+            grads = [g * clip_coef for g in grads]
+        
+        return grads
+    
+    def _soft_update_target(self, tau: float):
+        """
+        Soft update target network (Phase 0.2: Training Stability).
+        
+        Args:
+            tau: Soft update coefficient (0.005 recommended)
+        """
+        for target_param, policy_param in zip(self.target.params, self.q.params):
+            target_param[:] = tau * policy_param + (1.0 - tau) * target_param
+    
     def train_step(self):
-        """Perform one training step using experience replay.
+        """
+        Perform one training step using experience replay with stability features.
         
         Returns:
             Training loss value, or None if insufficient data
         """
-        if self.buffer.size() < max(self.cfg.warmup, self.cfg.batch_size):
+        buffer_size = len(self.buffer) if self.use_per else self.buffer.size()
+        if buffer_size < max(self.cfg.warmup, self.cfg.batch_size):
             self.steps += 1
             return None
-        s, a, r, ns, d = self.buffer.sample(self.cfg.batch_size)
+        
+        # Sample batch from replay buffer
+        if self.use_per:
+            # PER returns (states, actions, rewards, next_states, dones, indices, weights)
+            s, a, r, ns, d, indices, is_weights = self.buffer.sample(self.cfg.batch_size)
+        else:
+            # Uniform replay returns (states, actions, rewards, next_states, dones)
+            s, a, r, ns, d = self.buffer.sample(self.cfg.batch_size)
+            indices = None
+            is_weights = np.ones(self.cfg.batch_size)  # Uniform weights
 
         # Compute targets using target network
         q_next, _ = self.target.forward(ns)
@@ -476,15 +589,41 @@ class DQNAgent:
         # Forward current network and gather Q(s,a)
         q, cache = self.q.forward(s)
         # Build gradient wrt q outputs
+        # Apply importance sampling weights for PER
         dq = np.zeros_like(q)
         batch_indices = np.arange(self.cfg.batch_size)
-        dq[batch_indices, a] = (q[batch_indices, a] - target) * (2.0 / self.cfg.batch_size)
+        td_errors = q[batch_indices, a] - target
+        
+        # Weight the gradients by importance sampling weights (for PER)
+        if self.use_per:
+            weighted_errors = td_errors * is_weights.reshape(-1, 1)
+            dq[batch_indices, a] = weighted_errors * (2.0 / self.cfg.batch_size)
+        else:
+            dq[batch_indices, a] = td_errors * (2.0 / self.cfg.batch_size)
 
         grads = self.q.backward(cache, dq)
+        
+        # Gradient clipping (Phase 0.2: Training Stability)
+        grads = self._clip_gradients(grads, self.cfg.grad_clip_norm)
+        
         self.optimizer.step(grads)
 
-        if self.steps % self.cfg.target_update == 0:
-            self.target.copy_from(self.q)
+        # Update PER priorities if using PER
+        if self.use_per and indices is not None:
+            # Calculate TD errors for priority updates
+            td_errors_flat = np.abs(td_errors.flatten())
+            for idx, error in zip(indices, td_errors_flat):
+                self.buffer.update(idx, float(error))
+
+        # Target network update (soft or hard)
+        if self.cfg.use_soft_update:
+            # Soft update every step (Phase 0.2)
+            self._soft_update_target(self.cfg.soft_update_tau)
+        else:
+            # Hard update at specified frequency
+            if self.steps % self.cfg.target_update == 0:
+                self.target.copy_from(self.q)
+        
         self.steps += 1
         # Return loss estimate (MSE)
         loss = np.mean((q[batch_indices, a] - target) ** 2)

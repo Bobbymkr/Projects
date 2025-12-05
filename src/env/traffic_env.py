@@ -118,13 +118,14 @@ class TrafficEnv(gym.Env):
 
     def _compute_reward(self, action: int = None, optimal_action: int = None) -> float:
         """
-        Enhanced Multi-Objective Reward Function with proper normalization.
+        Enhanced Multi-Objective Reward Function with adaptive weighting.
         
         Implements Phase 0.1 from OPTIMIZATION_ROADMAP.md:
         - Multi-scale, hierarchical rewards
         - Proper normalization for stability
         - Shaped rewards for learning guidance
         - Safety constraints with hard penalties
+        - Adaptive weighting based on traffic conditions
         
         Args:
             action: Current action taken (optional, for efficiency bonus)
@@ -133,15 +134,29 @@ class TrafficEnv(gym.Env):
         Returns:
             Normalized reward value
         """
-        # Primary Objectives (Weighted)
-        # Queue penalty: normalized by capacity
-        queue_penalty = self.reward_weights.get("queue", -0.4) * float(np.sum(self.queues)) / self.queue_capacity
+        # Compute traffic density metrics for adaptive weighting
+        total_queue = float(np.sum(self.queues))
+        avg_queue = total_queue / self.num_lanes
+        queue_utilization = avg_queue / self.queue_capacity
+        max_queue_utilization = float(np.max(self.queues)) / self.queue_capacity
         
-        # Wait time penalty: normalized by episode horizon
-        wait_penalty = self.reward_weights.get("wait_penalty", -0.3) * float(np.sum(self.wait_times)) / (self.episode_horizon * self.num_lanes)
+        # Adaptive weighting: Increase penalty weights during high congestion
+        # This provides stronger signal differentiation when it matters most
+        congestion_factor = max(0.5, min(2.0, 1.0 + queue_utilization))
+        critical_congestion = max_queue_utilization > 0.8
         
-        # Throughput bonus: reward for vehicles cleared
-        throughput_bonus = self.reward_weights.get("throughput", 0.2) * self.total_vehicles_processed / max(1, self.time * self.num_lanes)
+        # Primary Objectives (Weighted with adaptive scaling)
+        # Queue penalty: normalized by capacity, scaled by congestion
+        base_queue_weight = self.reward_weights.get("queue", -0.4)
+        queue_penalty = base_queue_weight * congestion_factor * total_queue / self.queue_capacity
+        
+        # Wait time penalty: normalized by episode horizon, scaled by congestion
+        base_wait_weight = self.reward_weights.get("wait_penalty", -0.3)
+        wait_penalty = base_wait_weight * congestion_factor * float(np.sum(self.wait_times)) / (self.episode_horizon * self.num_lanes)
+        
+        # Throughput bonus: reward for vehicles cleared (higher weight during congestion)
+        base_throughput_weight = self.reward_weights.get("throughput", 0.2)
+        throughput_bonus = base_throughput_weight * congestion_factor * self.total_vehicles_processed / max(1, self.time * self.num_lanes)
         
         # Efficiency bonus: reward for choosing good actions (if action info available)
         efficiency_bonus = 0.0
@@ -150,14 +165,17 @@ class TrafficEnv(gym.Env):
             efficiency_bonus = self.reward_weights.get("efficiency", 0.1) * (1.0 - action_error)
         
         # Secondary Objectives (Shaping)
-        # Queue reduction bonus: reward for reducing queues
-        # This is computed per step, so we track previous queue state
+        # Queue reduction bonus: reward for reducing queues (amplified during congestion)
         if not hasattr(self, '_prev_queue_sum'):
             self._prev_queue_sum = float(np.sum(self.queues))
         
         queue_reduction = self._prev_queue_sum - float(np.sum(self.queues))
-        queue_reduction_bonus = self.reward_weights.get("queue_reduction", 0.05) * max(0.0, queue_reduction) / self.queue_capacity
+        queue_reduction_bonus = self.reward_weights.get("queue_reduction", 0.05) * congestion_factor * max(0.0, queue_reduction) / self.queue_capacity
         self._prev_queue_sum = float(np.sum(self.queues))
+        
+        # Imbalance penalty: Penalize when queues are highly imbalanced (encourages fairness)
+        queue_std = float(np.std(self.queues))
+        imbalance_penalty = -0.1 * (queue_std / self.queue_capacity) if queue_std > 5.0 else 0.0
         
         # Safety Constraints (Hard penalties)
         # Penalty for maximum queue length exceeding capacity
@@ -165,17 +183,23 @@ class TrafficEnv(gym.Env):
         if self.max_queue_length >= self.queue_capacity:
             safety_penalty = self.reward_weights.get("safety", -1000.0) * (self.max_queue_length - self.queue_capacity + 1) / self.queue_capacity
         
+        # Enhanced penalty for critical congestion
+        if critical_congestion:
+            safety_penalty += self.reward_weights.get("safety", -1000.0) * 0.1 * max_queue_utilization
+        
         # Penalty for accidents (if tracked in info)
         if hasattr(self, '_accident_occurred') and self._accident_occurred:
             safety_penalty += self.reward_weights.get("safety", -1000.0)
         
         # Combine all components
         raw_reward = (queue_penalty + wait_penalty + throughput_bonus + 
-                     efficiency_bonus + queue_reduction_bonus + safety_penalty)
+                     efficiency_bonus + queue_reduction_bonus + imbalance_penalty + safety_penalty)
         
         # Normalization (Critical for stability)
         # Normalize by expected scale to prevent reward explosion
-        normalized_reward = raw_reward / 100.0
+        # Use adaptive normalization based on congestion to maintain signal strength
+        normalization_factor = 100.0 / max(1.0, congestion_factor)
+        normalized_reward = raw_reward / normalization_factor
         
         return normalized_reward
 

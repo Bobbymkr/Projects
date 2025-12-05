@@ -1,402 +1,204 @@
-#!/usr/bin/env python3
 """
-Hyperparameter Optimization Framework.
+Automated Hyperparameter Optimization Script.
 
-Optimizes hyperparameters for RL agents using Optuna.
-
-Usage:
-    python scripts/optimize_hyperparameters.py --agent model_based_rl --trials 200
-    python scripts/optimize_hyperparameters.py --agent dqn --quick
-    python scripts/optimize_hyperparameters.py --agent all --trials 100
+Uses Optuna to optimize DQN agent hyperparameters for best performance.
 """
 
-import json
 import argparse
+import json
+import os
 import sys
-import time
 from pathlib import Path
-from typing import Dict, Any, Optional, Callable
-from datetime import datetime
 
 # Add project root to path
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-try:
-    from src.research.hyperparameter_optimization import (
-        HyperparameterOptimizer,
-        create_dqn_optimization_objective
+import numpy as np
+from tqdm import tqdm
+
+from src.env.traffic_env import TrafficEnv
+from src.rl.dqn_agent import DQNAgent, DQNConfig
+from src.research.hyperparameter_optimization import (
+    HyperparameterOptimizer,
+    create_dqn_optimization_objective,
+)
+
+
+def train_agent_with_config(config: dict, episodes: int = 50) -> DQNAgent:
+    """
+    Train DQN agent with given hyperparameters.
+    
+    Args:
+        config: Hyperparameter configuration
+        episodes: Number of training episodes
+        
+    Returns:
+        Trained agent
+    """
+    # Load environment config
+    env_config_path = config.get("env_config", "configs/intersection.json")
+    with open(env_config_path, 'r') as f:
+        env_config = json.load(f)
+    
+    env = TrafficEnv(env_config)
+    
+    # Create DQN config from hyperparameters
+    dqn_config = DQNConfig(
+        lr=config.get("learning_rate", 1e-3),
+        gamma=config.get("gamma", 0.99),
+        eps_start=config.get("epsilon_start", 1.0),
+        eps_end=config.get("epsilon_end", 0.05),
+        eps_decay=config.get("epsilon_decay", 20000),
+        batch_size=config.get("batch_size", 64),
+        target_update=config.get("target_update", 1000),
+        buffer_size=config.get("replay_buffer_size", 50000),
+        grad_clip_norm=config.get("grad_clip_norm", 10.0),
+        lr_schedule=config.get("lr_schedule", "cosine"),
+        soft_update_tau=config.get("soft_update_tau", 0.005),
     )
-    OPTUNA_AVAILABLE = True
-except ImportError:
-    try:
-        import optuna
-        OPTUNA_AVAILABLE = True
-    except ImportError:
-        OPTUNA_AVAILABLE = False
-        print("Warning: Optuna not available. Install with: pip install optuna", file=sys.stderr)
-
-try:
-    from src.env.traffic_env import TrafficEnv
-    from src.rl.dqn_agent import DQNAgent, DQNConfig
-except ImportError as e:
-    print(f"Warning: Could not import agents: {e}", file=sys.stderr)
-
-# Try to import advanced agents
-try:
-    from src.research.novel_algorithms.model_based_rl import ModelBasedRLAgent
-    from src.research.novel_algorithms.hierarchical_rl import HierarchicalRLAgent
-    from src.research.novel_algorithms.transformer_control import TransformerAgent
-except ImportError:
-    ModelBasedRLAgent = None
-    HierarchicalRLAgent = None
-    TransformerAgent = None
-
-
-def create_model_based_rl_objective(env_config: Dict[str, Any]) -> Callable:
-    """Create optimization objective for Model-Based RL."""
-    if not OPTUNA_AVAILABLE:
-        return None
     
-    def objective(trial):
-        """Optuna objective function for Model-Based RL."""
-        horizon = trial.suggest_int("horizon", 3, 10)
-        candidates = trial.suggest_int("candidates", 10, 50)
-        learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-2)
-        world_model_lr = trial.suggest_loguniform("world_model_lr", 1e-5, 1e-3)
-        
-        try:
-            # Create environment
-            env = TrafficEnv(env_config)
-            
-            # Create agent with suggested hyperparameters
-            if ModelBasedRLAgent:
-                agent = ModelBasedRLAgent(
-                    horizon=horizon,
-                    num_candidates=candidates,
-                    learning_rate=learning_rate,
-                    world_model_lr=world_model_lr
-                )
-            else:
-                # Fallback: return poor score if agent not available
-                return float('-inf')
-            
-            # Train for a short period
-            obs, info = env.reset()
-            total_reward = 0
-            episodes = 10  # Short training for optimization
-            
-            for episode in range(episodes):
-                obs, info = env.reset()
-                done = False
-                episode_reward = 0
-                
-                while not done:
-                    action = agent.decide(obs) if hasattr(agent, 'decide') else env.action_space.sample()
-                    obs, reward, terminated, truncated, info = env.step(action)
-                    done = terminated or truncated
-                    episode_reward += reward
-                    
-                    if hasattr(agent, 'update'):
-                        agent.update(obs, action, reward, obs, done)
-                
-                total_reward += episode_reward
-            
-            # Return average reward (maximize)
-            return total_reward / episodes
-        
-        except Exception as e:
-            print(f"Trial failed: {e}", file=sys.stderr)
-            return float('-inf')
+    agent = DQNAgent(
+        state_dim=env.observation_space.shape[0],
+        action_dim=env.action_space.n,
+        cfg=dqn_config
+    )
     
-    return objective
-
-
-def create_hierarchical_rl_objective(env_config: Dict[str, Any]) -> Callable:
-    """Create optimization objective for Hierarchical RL."""
-    if not OPTUNA_AVAILABLE:
-        return None
-    
-    def objective(trial):
-        """Optuna objective function for Hierarchical RL."""
-        num_options = trial.suggest_int("num_options", 3, 8)
-        option_horizon = trial.suggest_int("option_horizon", 5, 20)
-        learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-2)
-        termination_beta = trial.suggest_float("termination_beta", 0.01, 0.1)
+    # Training loop
+    rewards = []
+    for episode in range(episodes):
+        obs, info = env.reset()
+        episode_reward = 0.0
+        terminated = truncated = False
         
-        try:
-            env = TrafficEnv(env_config)
-            
-            if HierarchicalRLAgent:
-                agent = HierarchicalRLAgent(
-                    num_options=num_options,
-                    option_horizon=option_horizon,
-                    learning_rate=learning_rate,
-                    termination_beta=termination_beta
-                )
-            else:
-                return float('-inf')
-            
-            # Short training
-            total_reward = 0
-            episodes = 10
-            
-            for episode in range(episodes):
-                obs, info = env.reset()
-                done = False
-                episode_reward = 0
-                
-                while not done:
-                    action = agent.decide(obs) if hasattr(agent, 'decide') else env.action_space.sample()
-                    obs, reward, terminated, truncated, info = env.step(action)
-                    done = terminated or truncated
-                    episode_reward += reward
-                
-                total_reward += episode_reward
-            
-            return total_reward / episodes
-        
-        except Exception as e:
-            print(f"Trial failed: {e}", file=sys.stderr)
-            return float('-inf')
-    
-    return objective
-
-
-def create_transformer_objective(env_config: Dict[str, Any]) -> Callable:
-    """Create optimization objective for Transformer Agent."""
-    if not OPTUNA_AVAILABLE:
-        return None
-    
-    def objective(trial):
-        """Optuna objective function for Transformer."""
-        num_heads = trial.suggest_int("num_heads", 2, 8)
-        num_layers = trial.suggest_int("num_layers", 2, 6)
-        d_model = trial.suggest_int("d_model", 64, 256, step=32)
-        learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-2)
-        dropout = trial.suggest_float("dropout", 0.0, 0.3)
-        
-        try:
-            env = TrafficEnv(env_config)
-            
-            if TransformerAgent:
-                agent = TransformerAgent(
-                    num_heads=num_heads,
-                    num_layers=num_layers,
-                    d_model=d_model,
-                    learning_rate=learning_rate,
-                    dropout=dropout
-                )
-            else:
-                return float('-inf')
-            
-            # Short training
-            total_reward = 0
-            episodes = 10
-            
-            for episode in range(episodes):
-                obs, info = env.reset()
-                done = False
-                episode_reward = 0
-                
-                while not done:
-                    action = agent.decide(obs) if hasattr(agent, 'decide') else env.action_space.sample()
-                    obs, reward, terminated, truncated, info = env.step(action)
-                    done = terminated or truncated
-                    episode_reward += reward
-                
-                total_reward += episode_reward
-            
-            return total_reward / episodes
-        
-        except Exception as e:
-            print(f"Trial failed: {e}", file=sys.stderr)
-            return float('-inf')
-    
-    return objective
-
-
-def create_dqn_objective(env_config: Dict[str, Any]) -> Callable:
-    """Create optimization objective for DQN."""
-    if not OPTUNA_AVAILABLE:
-        return None
-    
-    def objective(trial):
-        """Optuna objective function for DQN."""
-        learning_rate = trial.suggest_loguniform("learning_rate", 1e-5, 1e-2)
-        batch_size = trial.suggest_int("batch_size", 16, 256)
-        gamma = trial.suggest_float("gamma", 0.9, 0.999)
-        epsilon_start = trial.suggest_float("epsilon_start", 0.9, 1.0)
-        epsilon_end = trial.suggest_float("epsilon_end", 0.01, 0.1)
-        replay_buffer_size = trial.suggest_int("replay_buffer_size", 10000, 100000, log=True)
-        
-        try:
-            env = TrafficEnv(env_config)
-            obs_dim = env_config.get("num_lanes", 4) * 2
-            action_dim = env.action_space.n
-            
-            config = DQNConfig(
-                learning_rate=learning_rate,
-                batch_size=batch_size,
-                gamma=gamma,
-                epsilon_start=epsilon_start,
-                epsilon_end=epsilon_end,
-                replay_buffer_size=replay_buffer_size
+        while not (terminated or truncated):
+            action = agent.select_action(obs.astype(np.float32))
+            next_obs, reward, terminated, truncated, info = env.step(action)
+            agent.push(
+                obs.astype(np.float32),
+                action,
+                reward,
+                next_obs.astype(np.float32),
+                terminated or truncated
             )
-            
-            agent = DQNAgent(obs_dim, action_dim, config)
-            
-            # Short training
-            total_reward = 0
-            episodes = 10
-            
-            for episode in range(episodes):
-                obs, info = env.reset()
-                done = False
-                episode_reward = 0
-                
-                while not done:
-                    action = agent.select_action(obs)
-                    obs, reward, terminated, truncated, info = env.step(action)
-                    done = terminated or truncated
-                    episode_reward += reward
-                    
-                    # Update agent
-                    if hasattr(agent, 'update'):
-                        agent.update(obs, action, reward, obs, done)
-                
-                total_reward += episode_reward
-            
-            return total_reward / episodes
+            loss = agent.train_step()
+            episode_reward += reward
+            obs = next_obs
         
-        except Exception as e:
-            print(f"Trial failed: {e}", file=sys.stderr)
-            return float('-inf')
+        rewards.append(episode_reward)
     
-    return objective
+    return agent, rewards
 
 
-def optimize_agent(agent_name: str, n_trials: int = 200, quick: bool = False) -> Dict[str, Any]:
-    """Optimize hyperparameters for a specific agent."""
-    if not OPTUNA_AVAILABLE:
-        print("Error: Optuna not available. Install with: pip install optuna", file=sys.stderr)
-        return {}
+def evaluate_agent(agent: DQNAgent, eval_episodes: int = 10) -> float:
+    """
+    Evaluate agent performance.
     
-    if quick:
-        n_trials = 20  # Quick optimization
+    Args:
+        agent: Trained agent
+        eval_episodes: Number of evaluation episodes
+        
+    Returns:
+        Average reward
+    """
+    env_config_path = "configs/intersection.json"
+    with open(env_config_path, 'r') as f:
+        env_config = json.load(f)
     
-    print(f"\n🔧 Optimizing {agent_name} hyperparameters...")
-    print(f"   Trials: {n_trials}")
-    print("=" * 80)
+    env = TrafficEnv(env_config)
     
-    # Default environment config
-    env_config = {
-        "num_lanes": 4,
-        "min_green": 5,
-        "max_green": 60,
-        "green_step": 5,
-        "arrival_rates": [0.3, 0.25, 0.35, 0.2],
-        "queue_capacity": 40
-    }
+    eval_rewards = []
+    for episode in range(eval_episodes):
+        obs, info = env.reset()
+        episode_reward = 0.0
+        terminated = truncated = False
+        
+        while not (terminated or truncated):
+            action = agent.select_action(obs.astype(np.float32), evaluate=True)
+            obs, reward, terminated, truncated, info = env.step(action)
+            episode_reward += reward
+        
+        eval_rewards.append(episode_reward)
     
-    # Get objective function
-    if agent_name == "model_based_rl":
-        objective = create_model_based_rl_objective(env_config)
-    elif agent_name == "hierarchical_rl":
-        objective = create_hierarchical_rl_objective(env_config)
-    elif agent_name == "transformer":
-        objective = create_transformer_objective(env_config)
-    elif agent_name == "dqn":
-        objective = create_dqn_objective(env_config)
-    else:
-        print(f"Error: Unknown agent {agent_name}", file=sys.stderr)
-        return {}
+    return np.mean(eval_rewards)
+
+
+def main():
+    """Main optimization function."""
+    parser = argparse.ArgumentParser(description="Optimize DQN hyperparameters")
+    parser.add_argument("--config", default="configs/intersection.json", help="Environment config")
+    parser.add_argument("--trials", type=int, default=50, help="Number of optimization trials")
+    parser.add_argument("--episodes", type=int, default=50, help="Training episodes per trial")
+    parser.add_argument("--eval-episodes", type=int, default=10, help="Evaluation episodes")
+    parser.add_argument("--out", default="runs/hyperopt", help="Output directory")
+    parser.add_argument("--study-name", default="dqn-hyperopt", help="Optuna study name")
+    parser.add_argument("--timeout", type=float, default=None, help="Timeout in seconds")
     
-    if objective is None:
-        print(f"Error: Could not create objective for {agent_name}", file=sys.stderr)
-        return {}
+    args = parser.parse_args()
+    
+    os.makedirs(args.out, exist_ok=True)
     
     # Create optimizer
     optimizer = HyperparameterOptimizer(
-        study_name=f"adaptive-traffic-{agent_name}",
+        study_name=args.study_name,
         direction="maximize",
         sampler="tpe"
     )
     
     if not optimizer.enabled:
-        print("Error: HyperparameterOptimizer not enabled", file=sys.stderr)
-        return {}
+        print("Optuna not available. Please install: pip install optuna")
+        return
+    
+    # Create objective function
+    def train_func(config):
+        agent, rewards = train_agent_with_config(config, episodes=args.episodes)
+        return agent
+    
+    def eval_func(agent):
+        return evaluate_agent(agent, eval_episodes=args.eval_episodes)
+    
+    objective = create_dqn_optimization_objective(train_func, eval_func)
+    
+    # Wrap objective to include env config
+    def wrapped_objective(trial):
+        trial_config = {}
+        # Add environment config path
+        trial_config["env_config"] = args.config
+        return objective(trial)
+    
+    print(f"Starting hyperparameter optimization with {args.trials} trials...")
+    print(f"Training {args.episodes} episodes per trial, evaluating with {args.eval_episodes} episodes")
     
     # Run optimization
-    start_time = time.time()
-    result = optimizer.optimize(objective, n_trials=n_trials, show_progress=True)
-    optimization_time = time.time() - start_time
+    results = optimizer.optimize(
+        wrapped_objective,
+        n_trials=args.trials,
+        timeout=args.timeout,
+        show_progress=True
+    )
     
-    if result:
-        print(f"\n✅ Optimization complete!")
-        print(f"   Best value: {result.get('best_value', 'N/A')}")
-        print(f"   Best parameters:")
-        for key, value in result.get('best_params', {}).items():
-            print(f"     {key}: {value}")
-        print(f"   Trials: {result.get('n_trials', 0)}")
-        print(f"   Time: {optimization_time/60:.2f} minutes")
+    # Save results
+    if results:
+        print(f"\nOptimization complete!")
+        print(f"Best value: {results.get('best_value', 'N/A')}")
+        print(f"Best parameters:")
+        for key, value in results.get('best_params', {}).items():
+            print(f"  {key}: {value}")
         
-        # Save results
-        output_dir = PROJECT_ROOT / "results" / "optimization"
-        output_dir.mkdir(parents=True, exist_ok=True)
+        # Save to file
+        results_path = os.path.join(args.out, "best_params.json")
+        with open(results_path, 'w') as f:
+            json.dump(results, f, indent=2)
+        print(f"\nResults saved to {results_path}")
         
-        output_file = output_dir / f"{agent_name}_optimization_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        
-        report = {
-            "agent": agent_name,
-            "timestamp": datetime.now().isoformat(),
-            "optimization_time_seconds": optimization_time,
-            "best_params": result.get("best_params", {}),
-            "best_value": result.get("best_value"),
-            "n_trials": result.get("n_trials", 0)
-        }
-        
-        with open(output_file, 'w') as f:
-            json.dump(report, f, indent=2)
-        
-        print(f"   Results saved to: {output_file}")
-        
-        return report
-    
-    return {}
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Optimize hyperparameters for RL agents")
-    parser.add_argument("--agent", type=str, required=True, help="Agent name (model_based_rl, hierarchical_rl, transformer, dqn, or 'all')")
-    parser.add_argument("--trials", type=int, default=200, help="Number of optimization trials")
-    parser.add_argument("--quick", action="store_true", help="Quick optimization (20 trials)")
-    parser.add_argument("--output", type=Path, help="Output directory")
-    
-    args = parser.parse_args()
-    
-    if not OPTUNA_AVAILABLE:
-        print("Error: Optuna not available. Install with: pip install optuna", file=sys.stderr)
-        sys.exit(1)
-    
-    agents_to_optimize = []
-    
-    if args.agent == "all":
-        agents_to_optimize = ["model_based_rl", "hierarchical_rl", "transformer", "dqn"]
+        # Save all trials
+        trials = optimizer.get_trials()
+        trials_path = os.path.join(args.out, "all_trials.json")
+        with open(trials_path, 'w') as f:
+            json.dump(trials, f, indent=2)
+        print(f"All trials saved to {trials_path}")
     else:
-        agents_to_optimize = [args.agent]
-    
-    results = {}
-    
-    for agent in agents_to_optimize:
-        result = optimize_agent(agent, args.trials, args.quick)
-        if result:
-            results[agent] = result
-    
-    if len(agents_to_optimize) > 1:
-        print(f"\n📊 Summary: Optimized {len(results)}/{len(agents_to_optimize)} agents")
+        print("Optimization failed or returned no results.")
 
 
 if __name__ == "__main__":
     main()
-

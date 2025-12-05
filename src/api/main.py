@@ -166,6 +166,9 @@ def create_app() -> FastAPI:
             add_request_id_middleware(app)
             add_timing_middleware(app)
             add_logging_middleware(app)
+            # Add security headers middleware
+            from .middleware import add_security_headers_middleware
+            add_security_headers_middleware(app)
         except Exception as e:
             logger.warning(f"Failed to add custom middleware: {e}")
     

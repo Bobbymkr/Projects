@@ -14,11 +14,14 @@ logger = logging.getLogger(__name__)
 # Try to import Optuna with graceful fallback
 try:
     import optuna
-    from optuna.samplers import TPESampler
+    from optuna.samplers import TPESampler, NSGAIISampler
     from optuna.pruners import MedianPruner
+    from optuna.multi_objective import Trial as MultiObjectiveTrial
     OPTUNA_AVAILABLE = True
+    OPTUNA_MULTI_OBJECTIVE_AVAILABLE = hasattr(optuna, 'multi_objective')
 except ImportError:
     OPTUNA_AVAILABLE = False
+    OPTUNA_MULTI_OBJECTIVE_AVAILABLE = False
     logger.warning("Optuna not available. Hyperparameter optimization will be limited.")
 
 
@@ -235,13 +238,20 @@ def create_dqn_optimization_objective(
     """
     def objective(trial: Any) -> float:
         """Optuna objective function."""
-        # Suggest hyperparameters
+        # Suggest hyperparameters with expanded search space
         learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True)
-        batch_size = trial.suggest_int("batch_size", 16, 256)
-        gamma = trial.suggest_float("gamma", 0.9, 0.999)
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128, 256])
+        gamma = trial.suggest_float("gamma", 0.90, 0.99)
         epsilon_start = trial.suggest_float("epsilon_start", 0.9, 1.0)
         epsilon_end = trial.suggest_float("epsilon_end", 0.01, 0.1)
+        epsilon_decay = trial.suggest_int("epsilon_decay", 10000, 50000)
         replay_buffer_size = trial.suggest_int("replay_buffer_size", 10000, 100000, log=True)
+        target_update = trial.suggest_int("target_update", 100, 2000)
+        
+        # Training stability hyperparameters (Phase 0.2)
+        grad_clip_norm = trial.suggest_float("grad_clip_norm", 1.0, 20.0)
+        lr_schedule = trial.suggest_categorical("lr_schedule", ["cosine", "linear", "constant"])
+        soft_update_tau = trial.suggest_float("soft_update_tau", 0.001, 0.01)
         
         # Create config
         config = {
@@ -250,7 +260,12 @@ def create_dqn_optimization_objective(
             "gamma": gamma,
             "epsilon_start": epsilon_start,
             "epsilon_end": epsilon_end,
+            "epsilon_decay": epsilon_decay,
             "replay_buffer_size": replay_buffer_size,
+            "target_update": target_update,
+            "grad_clip_norm": grad_clip_norm,
+            "lr_schedule": lr_schedule,
+            "soft_update_tau": soft_update_tau,
         }
         
         # Train and evaluate
@@ -261,6 +276,65 @@ def create_dqn_optimization_objective(
         except Exception as e:
             logger.error(f"Trial failed: {e}")
             return float('-inf') if trial.study.direction == "maximize" else float('inf')
+    
+    return objective
+
+
+def create_multi_objective_dqn_objective(
+    train_func: Callable,
+    eval_func: Callable,
+) -> Callable:
+    """
+    Create multi-objective optimization objective for DQN.
+    
+    Optimizes for:
+    1. Performance (reward)
+    2. Stability (variance)
+    3. Efficiency (training time)
+    
+    Args:
+        train_func: Training function that returns (model, metrics)
+        eval_func: Evaluation function that returns (reward, variance, efficiency)
+        
+    Returns:
+        Multi-objective function for Optuna
+    """
+    def objective(trial: Any) -> tuple:
+        """Multi-objective Optuna function."""
+        # Suggest hyperparameters
+        learning_rate = trial.suggest_float("learning_rate", 1e-5, 1e-2, log=True)
+        batch_size = trial.suggest_categorical("batch_size", [16, 32, 64, 128, 256])
+        gamma = trial.suggest_float("gamma", 0.90, 0.99)
+        epsilon_start = trial.suggest_float("epsilon_start", 0.9, 1.0)
+        epsilon_end = trial.suggest_float("epsilon_end", 0.01, 0.1)
+        replay_buffer_size = trial.suggest_int("replay_buffer_size", 10000, 100000, log=True)
+        
+        # Training stability
+        grad_clip_norm = trial.suggest_float("grad_clip_norm", 1.0, 20.0)
+        lr_schedule = trial.suggest_categorical("lr_schedule", ["cosine", "linear", "constant"])
+        
+        config = {
+            "learning_rate": learning_rate,
+            "batch_size": batch_size,
+            "gamma": gamma,
+            "epsilon_start": epsilon_start,
+            "epsilon_end": epsilon_end,
+            "replay_buffer_size": replay_buffer_size,
+            "grad_clip_norm": grad_clip_norm,
+            "lr_schedule": lr_schedule,
+        }
+        
+        # Train and evaluate
+        try:
+            model, train_metrics = train_func(config)
+            reward, variance, efficiency = eval_func(model)
+            
+            # Return tuple for multi-objective optimization
+            # Maximize reward, minimize variance, maximize efficiency
+            return reward, -variance, efficiency
+        except Exception as e:
+            logger.error(f"Trial failed: {e}")
+            return float('-inf'), float('inf'), float('-inf')
     
     return objective
 

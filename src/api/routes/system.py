@@ -11,7 +11,7 @@ import time
 import logging
 
 from ..schemas import SystemHealthResponse
-from ..dependencies import rate_limit
+from ..dependencies import rate_limit, get_traffic_controller
 from ..monitoring import metrics
 
 logger = logging.getLogger(__name__)
@@ -46,10 +46,22 @@ async def health_check(_rate_limit: None = Depends(rate_limit)):
         # These would be actual values from the metrics registry
         total_requests = metrics.http_requests_total._value.get() or 0
         
+        # Get active intersections from traffic controller
+        controller = await get_traffic_controller()
+        active_intersections_count = controller.registry.get_active_count()
+        
+        # Calculate error rate from metrics
+        # Get error count and total requests
+        try:
+            error_count = metrics.api_errors_total._value.get() or 0
+            error_rate = error_count / max(1, total_requests) if total_requests > 0 else 0.0
+        except (AttributeError, ZeroDivisionError):
+            error_rate = 0.0
+        
         # Determine overall status
-        if cpu_percent < 80 and memory_percent < 80:
+        if cpu_percent < 80 and memory_percent < 80 and error_rate < 0.05:
             status = "healthy"
-        elif cpu_percent < 90 and memory_percent < 90:
+        elif cpu_percent < 90 and memory_percent < 90 and error_rate < 0.10:
             status = "warning"
         else:
             status = "critical"
@@ -60,9 +72,9 @@ async def health_check(_rate_limit: None = Depends(rate_limit)):
             uptime_seconds=uptime_seconds,
             cpu_usage_percent=round(cpu_percent, 2),
             memory_usage_percent=round(memory_percent, 2),
-            active_intersections=4,  # TODO: Get from actual system
+            active_intersections=active_intersections_count,
             total_requests=int(total_requests),
-            error_rate=0.0,  # TODO: Calculate from metrics
+            error_rate=round(error_rate, 4),
             timestamp=datetime.utcnow(),
         )
         

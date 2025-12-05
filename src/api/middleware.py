@@ -59,6 +59,25 @@ if FASTAPI_AVAILABLE:
             return response
 
 
+    class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+        """Middleware to add security headers to all responses."""
+        
+        async def dispatch(self, request: Request, call_next):
+            response = await call_next(request)
+            
+            # Add security headers
+            try:
+                from ..security import SecurityHeaders
+                security_headers = SecurityHeaders.get_security_headers()
+                for header, value in security_headers.items():
+                    response.headers[header] = value
+            except ImportError:
+                # Fallback if security module not available
+                response.headers["X-Content-Type-Options"] = "nosniff"
+                response.headers["X-Frame-Options"] = "DENY"
+            
+            return response
+
     class LoggingMiddleware(BaseHTTPMiddleware):
         """Middleware for structured request/response logging."""
         
@@ -122,6 +141,10 @@ else:
     class LoggingMiddleware:
         """Mock middleware - FastAPI not available."""
         pass
+    
+    class SecurityHeadersMiddleware:
+        """Mock middleware - FastAPI not available."""
+        pass
 
 
 def add_request_id_middleware(app):
@@ -155,4 +178,15 @@ def add_logging_middleware(app):
             logger.warning(f"Failed to add logging middleware: {e}")
     else:
         logger.debug("Logging middleware skipped - FastAPI not available")
+
+
+def add_security_headers_middleware(app):
+    """Add security headers middleware to application."""
+    if FASTAPI_AVAILABLE:
+        try:
+            app.add_middleware(SecurityHeadersMiddleware)
+        except Exception as e:
+            logger.warning(f"Failed to add security headers middleware: {e}")
+    else:
+        logger.debug("Security headers middleware skipped - FastAPI not available")
 

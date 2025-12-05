@@ -193,8 +193,26 @@ async def get_current_active_user(
         
     Returns:
         Active user information
+        
+    Raises:
+        HTTPException if user is not active
     """
-    # TODO: Check if user is active in database
+    # Check if user is active
+    # For synthetic data context, assume all authenticated users are active
+    # In production, this would query: is_active = await db.is_user_active(current_user["user_id"])
+    if not FASTAPI_AVAILABLE:
+        return current_user
+    
+    # Simple active check: if user has a valid token, they're considered active
+    # In production, add database check: if not is_active: raise HTTPException(...)
+    user_active = current_user.get("user_id") != "anonymous"
+    
+    if not user_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is not active",
+        )
+    
     return current_user
 
 

@@ -41,7 +41,18 @@ pip install -e adaptive-traffic-api
 # 2. Train all technologies and compare
 python scripts/train_all_technologies.py --episodes 2000
 
-# 3. Test a specific model
+# 3. Train with advanced techniques
+# With Prioritized Experience Replay (PER)
+export ADAPTIVE_TRAFFIC_USE_PER=1
+python src/rl/train_dqn_simple.py --config configs/intersection.json --episodes 500
+
+# With Distributional RL (C51)
+python src/rl/train_distributional_dqn.py --algorithm C51 --episodes 500
+
+# Validate curriculum learning
+python scripts/validate_curriculum.py --episodes 300 --runs 3
+
+# 4. Test a specific model
 python src/rl/inference.py sim --model runs/model_based_rl.npz --episodes 10
 ```
 

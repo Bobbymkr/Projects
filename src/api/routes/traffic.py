@@ -19,6 +19,7 @@ from ..schemas import (
 )
 from ..dependencies import get_traffic_controller, rate_limit
 from ..monitoring import metrics
+from ..security import InputValidator, SecurityAuditLogger
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,31 @@ async def make_traffic_decision(
     start_time = time.time()
     
     try:
+        # Input validation
+        if not InputValidator.validate_intersection_id(request.intersection_id):
+            SecurityAuditLogger.log_security_event(
+                "invalid_input",
+                {"field": "intersection_id", "value": request.intersection_id},
+                severity="warning"
+            )
+            raise HTTPException(status_code=400, detail="Invalid intersection ID format")
+        
+        if not InputValidator.validate_queue_lengths(request.queue_lengths):
+            SecurityAuditLogger.log_security_event(
+                "invalid_input",
+                {"field": "queue_lengths"},
+                severity="warning"
+            )
+            raise HTTPException(status_code=400, detail="Invalid queue lengths")
+        
+        if not InputValidator.validate_wait_times(request.wait_times):
+            SecurityAuditLogger.log_security_event(
+                "invalid_input",
+                {"field": "wait_times"},
+                severity="warning"
+            )
+            raise HTTPException(status_code=400, detail="Invalid wait times")
+        
         # Record metrics
         metrics.traffic_decision_requests_total.inc()
         

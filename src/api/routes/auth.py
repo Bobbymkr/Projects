@@ -34,9 +34,13 @@ async def login(
     OAuth2 password flow token endpoint.
     
     Returns access token and refresh token upon successful authentication.
+    
+    Note: Currently uses in-memory user database for synthetic data context.
+    In production with real user database, this would query the database for user credentials.
     """
-    # TODO: Validate credentials against database
-    # For now, using mock validation
+    # Validate credentials against user store
+    # For synthetic data context, using in-memory mock database
+    # In production, this would query: user = await db.get_user(form_data.username)
     
     # Mock user database
     fake_users_db = {
