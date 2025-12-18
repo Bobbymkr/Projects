@@ -1,0 +1,20 @@
+{
+  "name": "North America (Standard)",
+  "control": "Fuzzy Logic",
+  "vision": "YOLOv8-Small",
+  "deployment": "Edge",
+  "cost_per_intersection": 25000,
+  "expected_wait_time": 9.1,
+  "traffic_density": "medium",
+  "arrival_rates": [
+    0.3,
+    0.25,
+    0.35,
+    0.2
+  ],
+  "characteristics": [
+    "standard vehicles",
+    "moderate discipline",
+    "suburban patterns"
+  ]
+}

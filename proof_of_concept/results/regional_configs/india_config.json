@@ -1,0 +1,21 @@
+{
+  "name": "India (Chaotic Mixed Traffic)",
+  "control": "Fuzzy Logic",
+  "vision": "YOLOv8-Small",
+  "deployment": "Edge",
+  "cost_per_intersection": 15000,
+  "expected_wait_time": 8.5,
+  "traffic_density": "very_high",
+  "arrival_rates": [
+    0.6,
+    0.55,
+    0.5,
+    0.45
+  ],
+  "characteristics": [
+    "2-wheelers",
+    "3-wheelers",
+    "mixed traffic",
+    "low lane discipline"
+  ]
+}

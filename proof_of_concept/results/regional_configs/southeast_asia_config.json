@@ -1,0 +1,20 @@
+{
+  "name": "Southeast Asia (Motorcycle-Heavy)",
+  "control": "Fuzzy Logic",
+  "vision": "YOLOv8-Small (Custom Trained)",
+  "deployment": "Edge",
+  "cost_per_intersection": 18000,
+  "expected_wait_time": 9.8,
+  "traffic_density": "high",
+  "arrival_rates": [
+    0.5,
+    0.45,
+    0.48,
+    0.42
+  ],
+  "characteristics": [
+    "heavy motorcycle traffic",
+    "tuk-tuks",
+    "mixed vehicles"
+  ]
+}

@@ -1,0 +1,323 @@
+{
+  "poc_metadata": {
+    "version": "1.0.0",
+    "created": "2025-12-18",
+    "description": "Comprehensive POC configuration integrating all GitHub branches",
+    "branches_integrated": [
+      "main",
+      "checklist", 
+      "assessment-reports",
+      "stabilization",
+      "qoder/feature/switch-yolov8-to-yolov11-1759053504"
+    ]
+  },
+  
+  "traffic_scenarios": {
+    "rush_hour": {
+      "name": "Rush Hour Traffic",
+      "arrival_rates": [0.6, 0.55, 0.5, 0.45],
+      "queue_capacity": 60,
+      "min_green": 10,
+      "max_green": 90,
+      "description": "High traffic volume, demonstrates system under stress"
+    },
+    
+    "normal": {
+      "name": "Normal Traffic",
+      "arrival_rates": [0.3, 0.25, 0.35, 0.2],
+      "queue_capacity": 40,
+      "min_green": 5,
+      "max_green": 60,
+      "description": "Typical daily operation, balanced performance"
+    },
+    
+    "light": {
+      "name": "Light Traffic",
+      "arrival_rates": [0.15, 0.12, 0.18, 0.1],
+      "queue_capacity": 30,
+      "min_green": 5,
+      "max_green": 45,
+      "description": "Low volume, system efficiency validation"
+    },
+    
+    "evening_peak": {
+      "name": "Evening Peak",
+      "arrival_rates": [0.5, 0.48, 0.52, 0.45],
+      "queue_capacity": 50,
+      "min_green": 8,
+      "max_green": 75,
+      "description": "Evening commute patterns"
+    }
+  },
+  
+  "control_strategies": {
+    "fuzzy_logic": {
+      "name": "Fuzzy Logic Controller",
+      "category": "Classical",
+      "complexity": "Low",
+      "training_required": false,
+      "expected_performance": {
+        "wait_time": 8.51,
+        "improvement_vs_baseline": 68.9,
+        "grade": "A+"
+      },
+      "deployment_recommendation": "Best for most regions - proven performance"
+    },
+    
+    "model_based_rl": {
+      "name": "Model-Based RL",
+      "category": "Advanced RL",
+      "complexity": "High",
+      "training_required": true,
+      "expected_performance": {
+        "wait_time": 12.30,
+        "improvement_vs_baseline": 55.1,
+        "grade": "A"
+      },
+      "deployment_recommendation": "Adaptive learning, good for dynamic environments"
+    },
+    
+    "dqn": {
+      "name": "Deep Q-Network",
+      "category": "Deep RL",
+      "complexity": "Medium",
+      "training_required": true,
+      "expected_performance": {
+        "wait_time": 21.47,
+        "improvement_vs_baseline": 21.6,
+        "grade": "B+"
+      },
+      "deployment_recommendation": "Requires ML expertise, 20+ intersections"
+    },
+    
+    "maml": {
+      "name": "MAML Meta-Learning",
+      "category": "Meta-Learning",
+      "complexity": "Very High",
+      "training_required": true,
+      "expected_performance": {
+        "wait_time": 14.20,
+        "improvement_vs_baseline": 48.1,
+        "grade": "A"
+      },
+      "deployment_recommendation": "Fast adaptation to new intersections"
+    },
+    
+    "webster": {
+      "name": "Webster Method",
+      "category": "Analytical",
+      "complexity": "Low",
+      "training_required": false,
+      "expected_performance": {
+        "wait_time": 27.37,
+        "improvement_vs_baseline": 0.0,
+        "grade": "C"
+      },
+      "deployment_recommendation": "Baseline comparison only"
+    }
+  },
+  
+  "vision_systems": {
+    "yolov8n": {
+      "name": "YOLOv8-Nano",
+      "purpose": "Baseline object detection",
+      "performance": {
+        "fps": 28.5,
+        "map": 0.72,
+        "latency_ms": 35
+      },
+      "deployment": "Edge devices, low power",
+      "cost_relative": 1.0
+    },
+    
+    "yolov11n": {
+      "name": "YOLOv11-Nano",
+      "purpose": "Upgraded object detection",
+      "performance": {
+        "fps": 34.2,
+        "map": 0.78,
+        "latency_ms": 29
+      },
+      "improvements": {
+        "fps": "+20%",
+        "accuracy": "+8.3%",
+        "latency": "-17%"
+      },
+      "deployment": "Recommended upgrade",
+      "cost_relative": 1.1
+    },
+    
+    "yolov8s": {
+      "name": "YOLOv8-Small",
+      "purpose": "Balanced performance",
+      "deployment": "Most common choice",
+      "cost_relative": 1.2
+    },
+    
+    "yolov8m": {
+      "name": "YOLOv8-Medium",
+      "purpose": "Higher accuracy",
+      "deployment": "High traffic, accuracy critical",
+      "cost_relative": 1.5
+    }
+  },
+  
+  "elite_testing": {
+    "performance_tests": {
+      "count": 15,
+      "categories": [
+        "Response time benchmarks",
+        "Throughput measurements", 
+        "Memory usage profiling",
+        "CPU utilization",
+        "Concurrent requests"
+      ]
+    },
+    
+    "security_tests": {
+      "count": 12,
+      "categories": [
+        "Input validation",
+        "SQL injection prevention",
+        "XSS protection",
+        "CSRF validation",
+        "Authentication/Authorization",
+        "Rate limiting"
+      ]
+    },
+    
+    "chaos_engineering": {
+      "count": 8,
+      "categories": [
+        "Network failure simulation",
+        "Power outage recovery",
+        "Camera failure handling",
+        "Sensor data corruption",
+        "Partial degradation"
+      ]
+    },
+    
+    "load_tests": {
+      "count": 10,
+      "categories": [
+        "Peak traffic simulation",
+        "Stress testing",
+        "Endurance testing",
+        "Scalability validation"
+      ]
+    }
+  },
+  
+  "quality_benchmarks": {
+    "code_quality": {
+      "target_score": 90,
+      "industry_benchmark": 85,
+      "weight": 0.20
+    },
+    
+    "test_coverage": {
+      "target_score": 85,
+      "industry_benchmark": 75,
+      "weight": 0.20
+    },
+    
+    "documentation": {
+      "target_score": 90,
+      "industry_benchmark": 80,
+      "weight": 0.20
+    },
+    
+    "performance": {
+      "target_score": 90,
+      "industry_benchmark": 82,
+      "weight": 0.20
+    },
+    
+    "security": {
+      "target_score": 88,
+      "industry_benchmark": 78,
+      "weight": 0.20
+    }
+  },
+  
+  "deployment_options": {
+    "edge": {
+      "name": "Edge Computing",
+      "description": "Local processing at intersection",
+      "pros": [
+        "Low latency (<100ms)",
+        "Works offline",
+        "Lower bandwidth needs",
+        "Cost-effective for small deployments"
+      ],
+      "cons": [
+        "Limited computational power",
+        "Harder to update remotely",
+        "No centralized coordination"
+      ],
+      "recommended_for": "1-10 intersections, low network reliability"
+    },
+    
+    "cloud": {
+      "name": "Cloud Computing",
+      "description": "Centralized cloud processing",
+      "pros": [
+        "Powerful computing resources",
+        "Easy updates",
+        "Centralized analytics",
+        "Multi-intersection coordination"
+      ],
+      "cons": [
+        "Requires reliable network",
+        "Higher latency",
+        "Higher ongoing costs",
+        "Network dependency"
+      ],
+      "recommended_for": "10+ intersections, high network reliability"
+    },
+    
+    "hybrid": {
+      "name": "Hybrid (Edge + Cloud)",
+      "description": "Real-time control at edge, analytics in cloud",
+      "pros": [
+        "Best of both worlds",
+        "Resilient to network failures",
+        "Coordinated optimization",
+        "Advanced analytics"
+      ],
+      "cons": [
+        "More complex setup",
+        "Higher initial cost"
+      ],
+      "recommended_for": "20+ intersections, city-wide deployments"
+    }
+  },
+  
+  "cost_estimates": {
+    "per_intersection": {
+      "developed_regions": {
+        "hardware": 30000,
+        "software": 5000,
+        "installation": 10000,
+        "annual_maintenance": 5000,
+        "currency": "USD"
+      },
+      
+      "developing_regions": {
+        "hardware": 15000,
+        "software": 2000,
+        "installation": 5000,
+        "annual_maintenance": 2000,
+        "currency": "USD"
+      },
+      
+      "emerging_regions": {
+        "hardware": 10000,
+        "software": 1000,
+        "installation": 3000,
+        "annual_maintenance": 1000,
+        "currency": "USD"
+      }
+    }
+  }
+}
