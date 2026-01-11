@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class PerformanceMetrics:
-    """Container for performance metrics snapshot."""
+    """Container for enhanced performance metrics snapshot."""
     timestamp: float
     fps: float
     frame_processing_time: float
@@ -48,6 +48,28 @@ class PerformanceMetrics:
     cpu_usage_percent: float
     gpu_usage_percent: Optional[float] = None
     gpu_memory_mb: Optional[float] = None
+    
+    # Enhanced metrics for YOLOv11n monitoring
+    model_type: str = "unknown"
+    model_load_time: float = 0.0
+    inference_batch_size: int = 1
+    nms_processing_time: float = 0.0
+    model_warmup_complete: bool = False
+    accuracy_score: float = 0.0
+    error_rate: float = 0.0
+    
+    # A/B testing metrics
+    shadow_model_fps: Optional[float] = None
+    shadow_model_accuracy: Optional[float] = None
+    model_correlation_score: Optional[float] = None
+    
+    def calculate_efficiency_score(self) -> float:
+        """Calculate overall efficiency score (0-1)."""
+        fps_score = min(self.fps / 30.0, 1.0)  # Target 30 FPS
+        accuracy_score = self.accuracy_score
+        efficiency_score = (1.0 - self.error_rate) if self.error_rate < 1.0 else 0.0
+        
+        return (fps_score * 0.4 + accuracy_score * 0.4 + efficiency_score * 0.2)
 
 
 @dataclass
@@ -180,40 +202,74 @@ class ResourceMonitor:
 
 
 class PerformanceMonitor:
-    """Comprehensive performance monitoring for vision pipeline."""
+    """Enhanced performance monitoring for YOLOv11n migration and A/B testing."""
     
     def __init__(self, 
                  window_size: int = 30,
                  log_interval: int = 100,
                  save_interval: int = 300,
-                 stats_file: Optional[str] = None):
+                 stats_file: Optional[str] = None,
+                 enable_ab_testing: bool = False):
         
         self.window_size = window_size
         self.log_interval = log_interval
         self.save_interval = save_interval
         self.stats_file = stats_file
+        self.enable_ab_testing = enable_ab_testing
         
         # Performance counters
         self.fps_counter = FPSCounter(window_size)
         self.resource_monitor = ResourceMonitor()
         
-        # Timing data
+        # Enhanced timing data with model-specific tracking
         self.timing_data: Dict[str, Deque[float]] = defaultdict(lambda: deque(maxlen=window_size))
+        self.model_timing_data: Dict[str, Dict[str, Deque[float]]] = defaultdict(lambda: defaultdict(lambda: deque(maxlen=window_size)))
         self.timing_lock = threading.Lock()
         
-        # Metrics history
+        # Metrics history with model separation
         self.metrics_history: List[PerformanceMetrics] = []
+        self.model_metrics_history: Dict[str, List[PerformanceMetrics]] = defaultdict(list)
         self.history_lock = threading.Lock()
         
-        # Counters
+        # Enhanced counters
         self.frame_count = 0
         self.detection_count = 0
         self.dropped_frame_count = 0
         self.start_time = time.time()
         
+        # Model-specific tracking
+        self.active_model_type = "unknown"
+        self.model_switch_count = 0
+        self.model_switch_history = []
+        
+        # A/B testing metrics
+        self.ab_test_metrics = {
+            "primary_model_frames": 0,
+            "secondary_model_frames": 0,
+            "comparison_results": [],
+            "performance_differences": deque(maxlen=100)
+        }
+        
+        # Performance thresholds and alerts
+        self.performance_thresholds = {
+            "min_fps": 15.0,
+            "max_memory_mb": 2048,
+            "max_error_rate": 0.05,
+            "min_accuracy": 0.7
+        }
+        
+        self.alert_callbacks = []
+        
         # Statistics
         self.stats = {
             "total_frames_processed": 0,
+            "total_detections": 0,
+            "model_switches": 0,
+            "rollbacks_triggered": 0,
+            "alert_count": 0
+        }
+        
+        logger.info(f"Enhanced PerformanceMonitor initialized (A/B testing: {enable_ab_testing})")
             "total_detections": 0,
             "total_dropped_frames": 0,
             "session_duration": 0.0,
@@ -254,30 +310,147 @@ class PerformanceMonitor:
         """Context manager for timing operations."""
         yield PerformanceTimer(name, self)
     
-    def record_timing(self, name: str, duration: float):
-        """Record timing data for an operation."""
+    def record_model_switch(self, from_model: str, to_model: str, reason: str = "unknown"):
+        """Record model switch event."""
+        switch_event = {
+            "timestamp": time.time(),
+            "from_model": from_model,
+            "to_model": to_model,
+            "reason": reason,
+            "frame_count": self.frame_count
+        }
+        
+        self.model_switch_history.append(switch_event)
+        self.model_switch_count += 1
+        self.active_model_type = to_model
+        self.stats["model_switches"] += 1
+        
+        logger.info(f"Model switch recorded: {from_model} -> {to_model} (Reason: {reason})")
+    
+    def record_model_performance(self, model_type: str, metrics: PerformanceMetrics):
+        """Record performance metrics for specific model."""
+        with self.history_lock:
+            self.model_metrics_history[model_type].append(metrics)
+            
+            # Keep history manageable
+            if len(self.model_metrics_history[model_type]) > 1000:
+                self.model_metrics_history[model_type] = self.model_metrics_history[model_type][-500:]
+    
+    def record_ab_test_comparison(self, primary_metrics: PerformanceMetrics, secondary_metrics: PerformanceMetrics):
+        """Record A/B test comparison results."""
+        if not self.enable_ab_testing:
+            return
+        
+        comparison = {
+            "timestamp": time.time(),
+            "primary_fps": primary_metrics.fps,
+            "secondary_fps": secondary_metrics.fps,
+            "primary_accuracy": primary_metrics.accuracy_score,
+            "secondary_accuracy": secondary_metrics.accuracy_score,
+            "fps_difference": secondary_metrics.fps - primary_metrics.fps,
+            "accuracy_difference": secondary_metrics.accuracy_score - primary_metrics.accuracy_score,
+            "performance_ratio": secondary_metrics.fps / primary_metrics.fps if primary_metrics.fps > 0 else 0
+        }
+        
+        self.ab_test_metrics["comparison_results"].append(comparison)
+        self.ab_test_metrics["performance_differences"].append(comparison["performance_ratio"])
+        
+        # Keep results manageable
+        if len(self.ab_test_metrics["comparison_results"]) > 1000:
+            self.ab_test_metrics["comparison_results"] = self.ab_test_metrics["comparison_results"][-500:]
+    
+    def register_alert_callback(self, callback):
+        """Register callback for performance alerts."""
+        self.alert_callbacks.append(callback)
+    
+    def _check_performance_alerts(self, metrics: PerformanceMetrics):
+        """Check for performance threshold violations."""
+        alerts = []
+        
+        # FPS threshold
+        if metrics.fps < self.performance_thresholds["min_fps"]:
+            alerts.append({
+                "type": "low_fps",
+                "message": f"FPS below threshold: {metrics.fps:.1f} < {self.performance_thresholds['min_fps']}",
+                "severity": "warning",
+                "value": metrics.fps,
+                "threshold": self.performance_thresholds["min_fps"]
+            })
+        
+        # Memory threshold
+        if metrics.memory_usage_mb > self.performance_thresholds["max_memory_mb"]:
+            alerts.append({
+                "type": "high_memory",
+                "message": f"Memory usage above threshold: {metrics.memory_usage_mb:.1f}MB > {self.performance_thresholds['max_memory_mb']}MB",
+                "severity": "critical",
+                "value": metrics.memory_usage_mb,
+                "threshold": self.performance_thresholds["max_memory_mb"]
+            })
+        
+        # Error rate threshold
+        if metrics.error_rate > self.performance_thresholds["max_error_rate"]:
+            alerts.append({
+                "type": "high_error_rate",
+                "message": f"Error rate above threshold: {metrics.error_rate:.2%} > {self.performance_thresholds['max_error_rate']:.2%}",
+                "severity": "critical",
+                "value": metrics.error_rate,
+                "threshold": self.performance_thresholds["max_error_rate"]
+            })
+        
+        # Accuracy threshold
+        if metrics.accuracy_score < self.performance_thresholds["min_accuracy"]:
+            alerts.append({
+                "type": "low_accuracy",
+                "message": f"Accuracy below threshold: {metrics.accuracy_score:.2%} < {self.performance_thresholds['min_accuracy']:.2%}",
+                "severity": "warning",
+                "value": metrics.accuracy_score,
+                "threshold": self.performance_thresholds["min_accuracy"]
+            })
+        
+        # Trigger alert callbacks
+        for alert in alerts:
+            self.stats["alert_count"] += 1
+            for callback in self.alert_callbacks:
+                try:
+                    callback(alert)
+                except Exception as e:
+                    logger.error(f"Alert callback failed: {e}")
+    
+    def record_timing(self, name: str, duration: float, model_type: str = "default"):
+        """Record timing data for an operation with model-specific tracking."""
         with self.timing_lock:
             self.timing_data[name].append(duration)
+            self.model_timing_data[model_type][name].append(duration)
     
-    def record_frame(self):
-        """Record frame processing completion."""
+    def record_frame(self, model_type: str = "default"):
+        """Record frame processing completion with model tracking."""
         self.fps_counter.tick()
         self.frame_count += 1
+        self.active_model_type = model_type
+        
+        # Track A/B testing frames
+        if self.enable_ab_testing:
+            if "primary" in model_type.lower():
+                self.ab_test_metrics["primary_model_frames"] += 1
+            elif "secondary" in model_type.lower():
+                self.ab_test_metrics["secondary_model_frames"] += 1
         
         # Log performance periodically
         if self.frame_count % self.log_interval == 0:
             self._log_performance()
     
-    def record_detection(self, num_detections: int):
-        """Record detection results."""
+    def record_detection(self, num_detections: int, model_type: str = "default"):
+        """Record detection results with model tracking."""
         self.detection_count += num_detections
+        self.stats["total_detections"] += num_detections
     
-    def record_dropped_frame(self):
-        """Record a dropped frame."""
+    def record_dropped_frame(self, reason: str = "unknown"):
+        """Record a dropped frame with reason."""
         self.dropped_frame_count += 1
+        logger.debug(f"Frame dropped: {reason}")
     
-    def get_current_metrics(self) -> PerformanceMetrics:
-        """Get current performance metrics snapshot."""
+    def get_current_metrics(self, model_type: str = "default") -> PerformanceMetrics:
+        """Get current performance metrics snapshot with enhanced data."""
         current_time = time.time()
         fps = self.fps_counter.get_fps()
         system_metrics = self.resource_monitor.get_system_metrics()
@@ -287,22 +460,41 @@ class PerformanceMonitor:
         detection_time = self._get_timing_average("detection")
         tracking_time = self._get_timing_average("tracking")
         queue_time = self._get_timing_average("queue_estimation")
+        nms_time = self._get_timing_average("nms_processing")
         
-        return PerformanceMetrics(
+        # Get model-specific timing if available
+        model_detection_time = self._get_model_timing_average(model_type, "detection")
+        
+        metrics = PerformanceMetrics(
             timestamp=current_time,
             fps=fps,
             frame_processing_time=frame_time,
-            detection_time=detection_time,
+            detection_time=model_detection_time or detection_time,
             tracking_time=tracking_time,
             queue_estimation_time=queue_time,
             total_vehicles_detected=self.detection_count,
-            active_tracks=0,  # To be set by caller
+            active_tracks=0,  # Will be updated by caller
             dropped_frames=self.dropped_frame_count,
             memory_usage_mb=self.resource_monitor.get_process_memory_mb(),
             cpu_usage_percent=system_metrics.cpu_percent,
             gpu_usage_percent=system_metrics.gpu_utilization,
-            gpu_memory_mb=system_metrics.gpu_memory_used_mb
+            gpu_memory_mb=system_metrics.gpu_memory_used_mb,
+            
+            # Enhanced metrics
+            model_type=model_type,
+            nms_processing_time=nms_time,
+            model_warmup_complete=current_time - self.start_time > 30,  # Consider warmed up after 30s
+            
+            # A/B testing metrics
+            shadow_model_fps=None,  # Will be set by caller if needed
+            shadow_model_accuracy=None,
+            model_correlation_score=None
         )
+        
+        # Check for performance alerts
+        self._check_performance_alerts(metrics)
+        
+        return metrics
     
     def _get_timing_average(self, name: str) -> float:
         """Get average timing for an operation."""
@@ -311,6 +503,56 @@ class PerformanceMonitor:
             if not times:
                 return 0.0
             return sum(times) / len(times) * 1000  # Convert to ms
+    
+    def _get_model_timing_average(self, model_type: str, operation: str) -> Optional[float]:
+        """Get model-specific timing average."""
+        with self.timing_lock:
+            if (model_type in self.model_timing_data and 
+                operation in self.model_timing_data[model_type] and 
+                self.model_timing_data[model_type][operation]):
+                timings = self.model_timing_data[model_type][operation]
+                return sum(timings) / len(timings) * 1000  # Convert to ms
+            return None
+    
+    def get_model_comparison_summary(self) -> Dict[str, Any]:
+        """Get summary of model performance comparison."""
+        if not self.enable_ab_testing:
+            return {"ab_testing_enabled": False}
+        
+        summary = {
+            "ab_testing_enabled": True,
+            "total_comparisons": len(self.ab_test_metrics["comparison_results"]),
+            "primary_model_frames": self.ab_test_metrics["primary_model_frames"],
+            "secondary_model_frames": self.ab_test_metrics["secondary_model_frames"]
+        }
+        
+        if self.ab_test_metrics["comparison_results"]:
+            recent_comparisons = self.ab_test_metrics["comparison_results"][-20:]  # Last 20
+            
+            import statistics
+            avg_fps_difference = statistics.mean([c["fps_difference"] for c in recent_comparisons])
+            avg_accuracy_difference = statistics.mean([c["accuracy_difference"] for c in recent_comparisons])
+            avg_performance_ratio = statistics.mean([c["performance_ratio"] for c in recent_comparisons])
+            
+            summary.update({
+                "recent_performance": {
+                    "avg_fps_difference": avg_fps_difference,
+                    "avg_accuracy_difference": avg_accuracy_difference,
+                    "avg_performance_ratio": avg_performance_ratio,
+                    "performance_improvement_percent": (avg_performance_ratio - 1.0) * 100
+                }
+            })
+        
+        return summary
+    
+    def get_model_switch_summary(self) -> Dict[str, Any]:
+        """Get summary of model switches."""
+        return {
+            "total_switches": self.model_switch_count,
+            "current_model": self.active_model_type,
+            "switch_history": self.model_switch_history[-10:],  # Last 10 switches
+            "switches_per_hour": self.model_switch_count / ((time.time() - self.start_time) / 3600) if time.time() - self.start_time > 0 else 0
+        }
     
     def get_performance_summary(self) -> Dict[str, Any]:
         """Get comprehensive performance summary."""

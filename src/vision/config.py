@@ -25,11 +25,20 @@ logger = logging.getLogger(__name__)
 
 class ModelType(Enum):
     """Supported YOLO model types and sizes."""
+    # YOLOv8 models
     YOLOV8_NANO = "yolov8n.pt"
     YOLOV8_SMALL = "yolov8s.pt"
     YOLOV8_MEDIUM = "yolov8m.pt"
     YOLOV8_LARGE = "yolov8l.pt"
     YOLOV8_XLARGE = "yolov8x.pt"
+    
+    # YOLOv11 models (enhanced performance)
+    YOLOV11_NANO = "yolo11n.pt"
+    YOLOV11_SMALL = "yolo11s.pt"
+    YOLOV11_MEDIUM = "yolo11m.pt"
+    YOLOV11_LARGE = "yolo11l.pt"
+    YOLOV11_XLARGE = "yolo11x.pt"
+    
     CUSTOM = "custom"
 
 
@@ -45,7 +54,7 @@ class LogLevel(Enum):
 @dataclass
 class YOLOConfig:
     """Configuration for YOLO model and detection parameters."""
-    model_type: ModelType = ModelType.YOLOV8_NANO
+    model_type: ModelType = ModelType.YOLOV11_NANO  # Default to YOLOv11n
     model_path: Optional[str] = None
     confidence_threshold: float = 0.5
     nms_threshold: float = 0.4
@@ -57,11 +66,40 @@ class YOLOConfig:
     half_precision: bool = False  # Use FP16 inference
     batch_size: int = 1
     
+    # Enhanced model selection and fallback configuration
+    enable_model_fallback: bool = True
+    fallback_chain: List[ModelType] = field(default_factory=lambda: [
+        ModelType.YOLOV11_NANO,
+        ModelType.YOLOV8_NANO,
+        ModelType.CUSTOM  # OpenCV DNN fallback
+    ])
+    model_selection_strategy: str = "performance_priority"  # "performance_priority", "compatibility_priority", "custom"
+    enable_shadow_mode: bool = False  # A/B testing mode
+    shadow_model_type: Optional[ModelType] = None
+    performance_threshold_fps: float = 15.0  # Minimum acceptable FPS
+    accuracy_threshold_map: float = 0.7  # Minimum acceptable mAP
+    enable_auto_rollback: bool = True
+    rollback_trigger_threshold: float = 0.8  # Trigger rollback if performance drops below this ratio
+    
     def get_model_path(self) -> str:
         """Get the resolved model path."""
         if self.model_path and Path(self.model_path).exists():
             return self.model_path
         return self.model_type.value
+    
+    def get_fallback_models(self) -> List[str]:
+        """Get list of fallback model paths in order of preference."""
+        if not self.enable_model_fallback:
+            return [self.get_model_path()]
+        
+        fallback_paths = []
+        for model_type in self.fallback_chain:
+            if model_type == ModelType.CUSTOM:
+                fallback_paths.append("opencv_dnn")
+            else:
+                fallback_paths.append(model_type.value)
+        
+        return fallback_paths
 
 
 @dataclass 
@@ -207,8 +245,22 @@ class ConfigManager:
         
         # Parse YOLO config
         yolo_dict = config_dict.get("yolo", {})
+        
+        # Handle fallback chain configuration
+        fallback_chain_strs = yolo_dict.get("fallback_chain", ["yolo11n.pt", "yolov8n.pt", "custom"])
+        fallback_chain = []
+        for model_str in fallback_chain_strs:
+            if model_str == "custom":
+                fallback_chain.append(ModelType.CUSTOM)
+            else:
+                # Find matching ModelType by value
+                for model_type in ModelType:
+                    if model_type.value == model_str:
+                        fallback_chain.append(model_type)
+                        break
+        
         yolo_config = YOLOConfig(
-            model_type=ModelType(yolo_dict.get("model_type", "yolov8n.pt")),
+            model_type=ModelType(yolo_dict.get("model_type", "yolo11n.pt")),
             model_path=yolo_dict.get("model_path"),
             confidence_threshold=yolo_dict.get("confidence_threshold", 0.5),
             nms_threshold=yolo_dict.get("nms_threshold", 0.4),
@@ -218,7 +270,16 @@ class ConfigManager:
             vehicle_classes=yolo_dict.get("vehicle_classes", [2, 3, 5, 7]),
             device=yolo_dict.get("device", "auto"),
             half_precision=yolo_dict.get("half_precision", False),
-            batch_size=yolo_dict.get("batch_size", 1)
+            batch_size=yolo_dict.get("batch_size", 1),
+            enable_model_fallback=yolo_dict.get("enable_model_fallback", True),
+            fallback_chain=fallback_chain,
+            model_selection_strategy=yolo_dict.get("model_selection_strategy", "performance_priority"),
+            enable_shadow_mode=yolo_dict.get("enable_shadow_mode", False),
+            shadow_model_type=ModelType(yolo_dict.get("shadow_model_type", "yolov8n.pt")) if yolo_dict.get("shadow_model_type") else None,
+            performance_threshold_fps=yolo_dict.get("performance_threshold_fps", 15.0),
+            accuracy_threshold_map=yolo_dict.get("accuracy_threshold_map", 0.7),
+            enable_auto_rollback=yolo_dict.get("enable_auto_rollback", True),
+            rollback_trigger_threshold=yolo_dict.get("rollback_trigger_threshold", 0.8)
         )
         
         # Parse performance config
@@ -320,7 +381,16 @@ class ConfigManager:
                 "vehicle_classes": config.yolo.vehicle_classes,
                 "device": config.yolo.device,
                 "half_precision": config.yolo.half_precision,
-                "batch_size": config.yolo.batch_size
+                "batch_size": config.yolo.batch_size,
+                "enable_model_fallback": config.yolo.enable_model_fallback,
+                "fallback_chain": [model_type.value for model_type in config.yolo.fallback_chain],
+                "model_selection_strategy": config.yolo.model_selection_strategy,
+                "enable_shadow_mode": config.yolo.enable_shadow_mode,
+                "shadow_model_type": config.yolo.shadow_model_type.value if config.yolo.shadow_model_type else None,
+                "performance_threshold_fps": config.yolo.performance_threshold_fps,
+                "accuracy_threshold_map": config.yolo.accuracy_threshold_map,
+                "enable_auto_rollback": config.yolo.enable_auto_rollback,
+                "rollback_trigger_threshold": config.yolo.rollback_trigger_threshold
             },
             "performance": asdict(config.performance),
             "visualization": asdict(config.visualization),
